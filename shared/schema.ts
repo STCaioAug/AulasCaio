@@ -3,27 +3,6 @@ import { createInsertSchema, createSelectSchema } from "drizzle-zod";
 import { relations } from "drizzle-orm";
 import { z } from "zod";
 
-// Usuários
-export const users = pgTable("users", {
-  id: serial("id").primaryKey(),
-  username: text("username").notNull().unique(),
-  password: text("password").notNull(),
-  nome: text("nome").notNull(),
-  email: text("email").notNull().unique(),
-  telefone: text("telefone"),
-  createdAt: timestamp("created_at").defaultNow().notNull(),
-});
-
-export const insertUserSchema = createInsertSchema(users, {
-  nome: (schema) => schema.min(3, "Nome deve ter pelo menos 3 caracteres"),
-  username: (schema) => schema.min(3, "Usuário deve ter pelo menos 3 caracteres"),
-  password: (schema) => schema.min(6, "Senha deve ter pelo menos 6 caracteres"),
-  email: (schema) => schema.email("Email inválido")
-});
-
-export type InsertUser = z.infer<typeof insertUserSchema>;
-export type User = typeof users.$inferSelect;
-
 // Enum para séries escolares
 export const anoEscolarEnum = pgEnum("ano_escolar", [
   "6_ano", "7_ano", "8_ano", "9_ano", "1_em", "2_em", "3_em", "superior"
@@ -63,6 +42,44 @@ export const insertAlunoSchema = createInsertSchema(alunos, {
 
 export type InsertAluno = z.infer<typeof insertAlunoSchema>;
 export type Aluno = typeof alunos.$inferSelect;
+
+// Usuários
+export const users = pgTable("users", {
+  id: serial("id").primaryKey(),
+  username: text("username").notNull().unique(),
+  password: text("password").notNull(),
+  nome: text("nome").notNull(),
+  email: text("email").notNull().unique(),
+  telefone: text("telefone"),
+  alunoId: integer("aluno_id").references(() => alunos.id),
+  isAdmin: boolean("is_admin").default(false).notNull(),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
+export const usersRelations = relations(users, ({ one }) => ({
+  aluno: one(alunos, {
+    fields: [users.alunoId],
+    references: [alunos.id],
+  }),
+}));
+
+export const insertUserSchema = createInsertSchema(users, {
+  nome: (schema) => schema.min(3, "Nome deve ter pelo menos 3 caracteres"),
+  username: (schema) => schema.min(3, "Usuário deve ter pelo menos 3 caracteres"),
+  password: (schema) => schema.min(6, "Senha deve ter pelo menos 6 caracteres"),
+  email: (schema) => schema.email("Email inválido")
+});
+
+export type InsertUser = z.infer<typeof insertUserSchema>;
+export type User = typeof users.$inferSelect;
+
+// Atualizando alunosRelations para incluir relação com usuários
+export const alunosUsersRelations = relations(alunos, ({ one }) => ({
+  usuario: one(users, {
+    fields: [alunos.id],
+    references: [users.alunoId],
+  }),
+}));
 
 // Responsáveis
 export const responsaveis = pgTable("responsaveis", {
