@@ -610,6 +610,9 @@ export function AlunoDetails({ alunoId }: AlunoDetailsProps) {
               <h1 className="text-2xl font-heading font-semibold text-gray-800">{aluno.nome}</h1>
               <div className="flex items-center space-x-2 mt-1">
                 <Badge variant="outline">{formatAnoEscolar(aluno.anoEscolar)}</Badge>
+                {aluno.escola && (
+                  <Badge variant="secondary">{aluno.escola}</Badge>
+                )}
                 {aluno.email && (
                   <span className="text-sm text-gray-500">{aluno.email}</span>
                 )}

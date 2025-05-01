@@ -16,6 +16,7 @@ import { queryClient } from "@/lib/queryClient";
 const alunoFormSchema = z.object({
   nome: z.string().min(3, { message: "Nome deve ter pelo menos 3 caracteres" }),
   anoEscolar: z.string({ required_error: "Selecione o ano escolar" }),
+  escola: z.string().default("Outra"),
   email: z.string().email({ message: "Email inválido" }).optional().or(z.literal("")),
   telefone: z.string().optional().or(z.literal("")),
   observacoes: z.string().optional().or(z.literal(""))
@@ -30,6 +31,7 @@ interface AlunoFormProps {
     id: number;
     nome: string;
     anoEscolar: string;
+    escola?: string;
     email?: string;
     telefone?: string;
     observacoes?: string;
@@ -43,6 +45,7 @@ export function AlunoForm({ open, onOpenChange, aluno }: AlunoFormProps) {
   const defaultValues: Partial<AlunoFormValues> = {
     nome: aluno?.nome || "",
     anoEscolar: aluno?.anoEscolar || "",
+    escola: aluno?.escola || "Outra",
     email: aluno?.email || "",
     telefone: aluno?.telefone || "",
     observacoes: aluno?.observacoes || ""
@@ -109,36 +112,70 @@ export function AlunoForm({ open, onOpenChange, aluno }: AlunoFormProps) {
               )}
             />
             
-            <FormField
-              control={form.control}
-              name="anoEscolar"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Ano Escolar</FormLabel>
-                  <Select 
-                    onValueChange={field.onChange} 
-                    defaultValue={field.value}
-                  >
-                    <FormControl>
-                      <SelectTrigger>
-                        <SelectValue placeholder="Selecione o ano escolar" />
-                      </SelectTrigger>
-                    </FormControl>
-                    <SelectContent>
-                      <SelectItem value="6_ano">6º Ano</SelectItem>
-                      <SelectItem value="7_ano">7º Ano</SelectItem>
-                      <SelectItem value="8_ano">8º Ano</SelectItem>
-                      <SelectItem value="9_ano">9º Ano</SelectItem>
-                      <SelectItem value="1_em">1º Ensino Médio</SelectItem>
-                      <SelectItem value="2_em">2º Ensino Médio</SelectItem>
-                      <SelectItem value="3_em">3º Ensino Médio</SelectItem>
-                      <SelectItem value="superior">Ensino Superior</SelectItem>
-                    </SelectContent>
-                  </Select>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <FormField
+                control={form.control}
+                name="anoEscolar"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Ano Escolar</FormLabel>
+                    <Select 
+                      onValueChange={field.onChange} 
+                      defaultValue={field.value}
+                    >
+                      <FormControl>
+                        <SelectTrigger>
+                          <SelectValue placeholder="Selecione o ano escolar" />
+                        </SelectTrigger>
+                      </FormControl>
+                      <SelectContent>
+                        <SelectItem value="6_ano">6º Ano</SelectItem>
+                        <SelectItem value="7_ano">7º Ano</SelectItem>
+                        <SelectItem value="8_ano">8º Ano</SelectItem>
+                        <SelectItem value="9_ano">9º Ano</SelectItem>
+                        <SelectItem value="1_em">1º Ensino Médio</SelectItem>
+                        <SelectItem value="2_em">2º Ensino Médio</SelectItem>
+                        <SelectItem value="3_em">3º Ensino Médio</SelectItem>
+                        <SelectItem value="superior">Ensino Superior</SelectItem>
+                      </SelectContent>
+                    </Select>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              
+              <FormField
+                control={form.control}
+                name="escola"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Escola</FormLabel>
+                    <Select 
+                      onValueChange={field.onChange} 
+                      defaultValue={field.value}
+                    >
+                      <FormControl>
+                        <SelectTrigger>
+                          <SelectValue placeholder="Selecione a escola" />
+                        </SelectTrigger>
+                      </FormControl>
+                      <SelectContent>
+                        <SelectItem value="EEP">EEP</SelectItem>
+                        <SelectItem value="CLQ">CLQ</SelectItem>
+                        <SelectItem value="Liceu">Liceu</SelectItem>
+                        <SelectItem value="Objetivo">Objetivo</SelectItem>
+                        <SelectItem value="Mackenzie">Mackenzie</SelectItem>
+                        <SelectItem value="Bandeirantes">Bandeirantes</SelectItem>
+                        <SelectItem value="Anglo">Anglo</SelectItem>
+                        <SelectItem value="Poliedro">Poliedro</SelectItem>
+                        <SelectItem value="Outra">Outra</SelectItem>
+                      </SelectContent>
+                    </Select>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+            </div>
             
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <FormField
