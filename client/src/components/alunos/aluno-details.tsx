@@ -106,10 +106,12 @@ const StatusBadge = ({ status }: { status: string }) => {
 function FetchUserData({ alunoId }: { alunoId: string }) {
   const { toast } = useToast();
   const [resetPasswordDialogOpen, setResetPasswordDialogOpen] = useState(false);
+  const [newUserDialogOpen, setNewUserDialogOpen] = useState(false);
   const [newPassword, setNewPassword] = useState("");
+  const [generatedUsername, setGeneratedUsername] = useState("");
   
   // Buscar usuário pelo ID do aluno
-  const { data: userData, isLoading: isLoadingUser, error: userError } = useQuery({
+  const { data: userData, isLoading: isLoadingUser, error: userError, refetch } = useQuery({
     queryKey: [`/api/users/by-aluno/${alunoId}`],
   });
   
@@ -138,6 +140,30 @@ function FetchUserData({ alunoId }: { alunoId: string }) {
     }
   });
   
+  // Mutação para criar usuário
+  const createUserMutation = useMutation({
+    mutationFn: async (data: { username: string, password: string, nome: string, alunoId: number }) => {
+      const res = await apiRequest("POST", "/api/register", data);
+      return res.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: [`/api/users/by-aluno/${alunoId}`] });
+      toast({
+        title: "Usuário criado",
+        description: "A conta de usuário foi criada com sucesso."
+      });
+      setNewUserDialogOpen(false);
+      refetch();
+    },
+    onError: (error) => {
+      toast({
+        title: "Erro",
+        description: "Não foi possível criar o usuário: " + error.message,
+        variant: "destructive"
+      });
+    }
+  });
+  
   // Gerar nova senha para usuário
   const gerarSenha = () => {
     if (!userData?.usuario) return;
@@ -149,6 +175,38 @@ function FetchUserData({ alunoId }: { alunoId: string }) {
     
     // Abrir diálogo de confirmação
     setResetPasswordDialogOpen(true);
+  };
+  
+  // Função para criar conta de usuário para aluno existente
+  const criarContaUsuario = () => {
+    if (!userData) return;
+    
+    // Gerar nome de usuário baseado no nome do aluno (substituir espaços por underscores e deixar minúsculo)
+    const nomeFormatado = userData.nome.toLowerCase().replace(/\s+/g, '_');
+    // Remover acentos e caracteres especiais
+    const nomeNormalizado = nomeFormatado.normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+    setGeneratedUsername(nomeNormalizado);
+    
+    // Gerar senha padrão (primeiras 3 letras do nome + ano escolar + "2025")
+    let namePart = userData.nome.substring(0, 3).toLowerCase();
+    namePart = namePart.normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+    const novaSenha = namePart + userData.anoEscolar.replace('_', '') + "2025";
+    setNewPassword(novaSenha);
+    
+    // Abrir diálogo para confirmar criação de usuário
+    setNewUserDialogOpen(true);
+  };
+  
+  // Confirmar criação de novo usuário
+  const confirmarCriacaoUsuario = () => {
+    if (!userData || !generatedUsername || !newPassword) return;
+    
+    createUserMutation.mutate({
+      username: generatedUsername,
+      password: newPassword,
+      nome: userData.nome,
+      alunoId: parseInt(alunoId)
+    });
   };
   
   // Função para copiar para o clipboard
@@ -193,12 +251,7 @@ function FetchUserData({ alunoId }: { alunoId: string }) {
           variant="outline" 
           size="sm" 
           className="mt-4"
-          onClick={() => {
-            toast({
-              title: "Funcionalidade em desenvolvimento",
-              description: "A criação manual de usuários estará disponível em breve."
-            });
-          }}
+          onClick={criarContaUsuario}
         >
           <User className="h-4 w-4 mr-1" /> Criar conta de usuário
         </Button>
@@ -344,6 +397,61 @@ function FetchUserData({ alunoId }: { alunoId: string }) {
               disabled={resetPasswordMutation.isPending}
             >
               {resetPasswordMutation.isPending ? "Redefinindo..." : "Confirmar redefinição"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+      
+      {/* Dialog para criar novo usuário */}
+      <Dialog open={newUserDialogOpen} onOpenChange={setNewUserDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Criar conta de usuário</DialogTitle>
+            <DialogDescription>
+              Você está prestes a criar uma conta de usuário para o aluno. Os dados abaixo serão utilizados para o acesso.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            <div className="space-y-2">
+              <p className="text-sm font-medium">Nome de usuário:</p>
+              <div className="flex items-center justify-between p-2 bg-gray-100 rounded border">
+                <code className="text-sm">{generatedUsername}</code>
+                <Button 
+                  variant="ghost" 
+                  size="sm" 
+                  onClick={() => copiarParaClipboard(generatedUsername)}
+                >
+                  <Copy className="h-4 w-4" />
+                </Button>
+              </div>
+            </div>
+            
+            <div className="space-y-2">
+              <p className="text-sm font-medium">Senha:</p>
+              <div className="flex items-center justify-between p-2 bg-gray-100 rounded border">
+                <code className="text-sm">{newPassword}</code>
+                <Button 
+                  variant="ghost" 
+                  size="sm" 
+                  onClick={() => copiarParaClipboard(newPassword)}
+                >
+                  <Copy className="h-4 w-4" />
+                </Button>
+              </div>
+              <p className="text-xs text-gray-500 mt-1">
+                Anote essas informações pois elas não serão exibidas novamente após a confirmação.
+              </p>
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setNewUserDialogOpen(false)}>
+              Cancelar
+            </Button>
+            <Button 
+              onClick={confirmarCriacaoUsuario}
+              disabled={createUserMutation.isPending}
+            >
+              {createUserMutation.isPending ? "Criando..." : "Criar usuário"}
             </Button>
           </DialogFooter>
         </DialogContent>
