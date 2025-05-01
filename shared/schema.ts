@@ -5,7 +5,7 @@ import { z } from "zod";
 
 // Enum para séries escolares
 export const anoEscolarEnum = pgEnum("ano_escolar", [
-  "6_ano", "7_ano", "8_ano", "9_ano", "1_em", "2_em", "3_em", "superior"
+  "1_ef", "2_ef", "3_ef", "4_ef", "5_ef", "6_ano", "7_ano", "8_ano", "9_ano", "1_em", "2_em", "3_em", "superior"
 ]);
 
 // Enum para escolas

@@ -17,6 +17,11 @@ export function formatCurrency(value: number | string): string {
 // Formatação de ano escolar para exibição
 export function formatAnoEscolar(anoEscolar: string): string {
   switch (anoEscolar) {
+    case '1_ef': return '1º Ano EF';
+    case '2_ef': return '2º Ano EF';
+    case '3_ef': return '3º Ano EF';
+    case '4_ef': return '4º Ano EF';
+    case '5_ef': return '5º Ano EF';
     case '6_ano': return '6º Ano';
     case '7_ano': return '7º Ano';
     case '8_ano': return '8º Ano';

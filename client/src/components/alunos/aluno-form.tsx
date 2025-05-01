@@ -129,6 +129,11 @@ export function AlunoForm({ open, onOpenChange, aluno }: AlunoFormProps) {
                         </SelectTrigger>
                       </FormControl>
                       <SelectContent>
+                        <SelectItem value="1_ef">1º Ano EF</SelectItem>
+                        <SelectItem value="2_ef">2º Ano EF</SelectItem>
+                        <SelectItem value="3_ef">3º Ano EF</SelectItem>
+                        <SelectItem value="4_ef">4º Ano EF</SelectItem>
+                        <SelectItem value="5_ef">5º Ano EF</SelectItem>
                         <SelectItem value="6_ano">6º Ano</SelectItem>
                         <SelectItem value="7_ano">7º Ano</SelectItem>
                         <SelectItem value="8_ano">8º Ano</SelectItem>
