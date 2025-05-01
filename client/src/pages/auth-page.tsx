@@ -81,10 +81,10 @@ export default function AuthPage() {
         <div className="w-full max-w-md space-y-8">
           <div className="text-center">
             <h1 className="mt-6 text-3xl font-bold tracking-tight text-gray-900 font-heading">
-              Edu Manager
+              Eleve Estudos
             </h1>
             <p className="mt-2 text-sm text-gray-600">
-              Sistema de Gestão de Aulas Particulares
+              Estudar deve ser Leve • Aulas com Caio A
             </p>
           </div>
 
@@ -202,15 +202,19 @@ export default function AuthPage() {
                   <FormField
                     control={registerForm.control}
                     name="telefone"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Telefone</FormLabel>
-                        <FormControl>
-                          <Input placeholder="(00) 00000-0000" {...field} />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
+                    render={({ field }) => {
+                      // Garante que o valor é sempre uma string
+                      const value = field.value || '';
+                      return (
+                        <FormItem>
+                          <FormLabel>Telefone</FormLabel>
+                          <FormControl>
+                            <Input placeholder="(00) 00000-0000" {...field} value={value} />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      );
+                    }}
                   />
 
                   <Button

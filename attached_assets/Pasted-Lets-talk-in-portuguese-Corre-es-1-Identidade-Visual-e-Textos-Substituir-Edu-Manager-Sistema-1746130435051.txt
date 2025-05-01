@@ -1,0 +1,81 @@
+Lets talk in portuguese 
+
+Correções
+
+1. Identidade Visual e Textos
+
+Substituir "Edu Manager (Sistema de Gestão de Aulas)" por:
+
+Na página de login:Eleve Estudos – (Estudar deve ser Leve)Aulas com Caio A
+
+Na página interna personalizada de cada aluno (após login):[Nome do aluno] – Aulas Particulares Caio
+
+2. Página Personalizada do Aluno
+
+Ao fazer login, o aluno será redirecionado para uma página exclusiva, com as seguintes informações visíveis somente para ele:
+
+Quantidade de aulas já realizadas
+
+Aulas já agendadas
+
+Horários disponíveis para agendamento de novas aulas
+
+O aluno poderá:
+
+Agendar novas aulas
+
+Editar os horários das aulas agendadas
+
+Visualizar os horários da semana, classificados como:
+
+Verde: horários livres
+
+Vermelho: horários reservados
+
+Editar seus dados pessoais, incluindo:
+
+Foto de perfil
+
+Nome
+
+E-mail
+
+Senha de acesso
+
+Importante: o aluno não pode ver o nome ou agendamento de outros alunos, apenas a disponibilidade geral.
+
+3. Notificações para o Professor
+
+Toda vez que um aluno agendar uma aula pelo sistema, uma notificação será enviada automaticamente para o professor (Caio).
+
+4. Sistema de Login e Administração
+
+Criar um sistema de login com os seguintes critérios:
+
+Login de administrador (acesso total):
+
+Login: STCaio
+
+Senha: Deus2025
+
+Acesso exclusivo do administrador à página completa com todas as funcionalidades.
+
+Criar uma aba chamada "USUÁRIOS", com os dados de login/senha de todos os alunos.
+
+Apenas o administrador terá acesso a essa aba.
+
+O administrador poderá definir quem mais pode ter acesso de administrador futuramente.
+
+Cada aluno terá um nome de usuário e senha fácil, podendo posteriormente cadastrar seu próprio e-mail, login e senha para atualizar suas informações.
+
+5. Funcionalidades Extras
+
+Garantir que os relatórios do sistema estejam funcionando corretamente.
+
+Ao cadastrar uma aula, incluir a opção de marcar se ela será uma aula recorrente, com opções de:
+
+Frequência (semanal, quinzenal, mensal, etc.)
+
+6. Gráficos
+
+Na aba de gráficos, incluir uma ferramenta de filtro por aluno, para facilitar a visualização individual dos dados.
