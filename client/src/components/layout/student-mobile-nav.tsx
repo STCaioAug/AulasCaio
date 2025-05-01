@@ -19,11 +19,8 @@ export function StudentMobileNav() {
   return (
     <div className="flex items-center justify-between h-16 px-4 border-b bg-white sticky top-0 z-10">
       <div className="flex items-center gap-2">
-        <GraduationCap className="h-6 w-6 text-primary-600" />
-        <div>
-          <h1 className="font-bold text-lg font-heading">Eleve Estudos</h1>
-          <p className="text-xs text-gray-500">Portal do Aluno</p>
-        </div>
+        <img src="/images/logo.png" alt="Eleve Estudos" className="h-8" />
+        <p className="text-xs text-gray-500">Portal do Aluno</p>
       </div>
       
       <div className="flex items-center gap-4">
