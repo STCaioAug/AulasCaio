@@ -92,6 +92,54 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const validatedData = insertAlunoSchema.parse(req.body);
       const [newAluno] = await db.insert(alunos).values(validatedData).returning();
+      
+      // Criar usuário para o aluno automaticamente
+      if (newAluno && newAluno.email) {
+        // Gerar nome de usuário baseado no nome do aluno (converter espaços para underscores e remover caracteres especiais)
+        const username = newAluno.nome
+          .normalize('NFD')
+          .replace(/[\u0300-\u036f]/g, '') // Remove acentos
+          .toLowerCase()
+          .replace(/\s+/g, '_') // Substitui espaços por underscores
+          .replace(/[^a-z0-9_]/g, '') // Remove caracteres especiais
+          + Math.floor(Math.random() * 100); // Adiciona número aleatório para evitar duplicatas
+          
+        // Senha padrão (primeiras 3 letras do nome + ano escolar + "2025")
+        let namePart = newAluno.nome.substring(0, 3).toLowerCase();
+        const defaultPassword = namePart + newAluno.anoEscolar.replace('_', '') + "2025";
+        
+        try {
+          // Hash da senha
+          const hashedPassword = await storage.hashPassword(defaultPassword);
+          
+          // Criar usuário
+          const userData = {
+            username,
+            password: hashedPassword,
+            nome: newAluno.nome,
+            email: newAluno.email,
+            telefone: newAluno.telefone || '',
+            alunoId: newAluno.id,
+            isAdmin: false
+          };
+          
+          const [newUser] = await db.insert(users).values(userData).returning();
+          console.log(`Usuário criado automaticamente para aluno ${newAluno.nome}: ${username}`);
+          
+          // Incluir informação de usuário na resposta
+          return res.status(201).json({
+            ...newAluno,
+            user: {
+              username,
+              defaultPassword: defaultPassword // Retornar senha padrão para ser informada ao usuário
+            }
+          });
+        } catch (err) {
+          console.error("Erro ao criar usuário para aluno:", err);
+          // Continuar mesmo se falhar a criação do usuário
+        }
+      }
+      
       return res.status(201).json(newAluno);
     } catch (error) {
       if (error instanceof z.ZodError) {
