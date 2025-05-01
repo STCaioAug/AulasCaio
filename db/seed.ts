@@ -26,19 +26,23 @@ async function seed() {
 
     // Verifica se já existe um usuário (para evitar duplicação)
     const existingUsers = await db.select().from(users);
-    if (existingUsers.length === 0) {
+    
+    // Verificar se existe o usuário STCaio
+    const adminUser = existingUsers.find(user => user.username === "STCaio");
+    
+    if (existingUsers.length === 0 || !adminUser) {
       // Criar usuário administrador
-      const hashedPassword = await hashPassword("123456");
+      const hashedPassword = await hashPassword("Deus2025");
       await db.insert(users).values({
-        username: "admin",
+        username: "STCaio",
         password: hashedPassword,
-        nome: "Maria Silva",
-        email: "professor@edu.com",
+        nome: "Caio A",
+        email: "professor@eleve.com",
         telefone: "(19) 99999-9999"
       });
-      console.log("Usuário admin criado com sucesso!");
+      console.log("Usuário administrador STCaio criado com sucesso!");
     } else {
-      console.log("Usuários já existem, pulando criação de usuário admin");
+      console.log("Usuário administrador já existe, pulando criação");
     }
 
     // Verificar matérias existentes
