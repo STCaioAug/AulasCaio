@@ -887,6 +887,173 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // ===============================
+  // APIs para o portal do aluno
+  // ===============================
+  
+  // API para buscar dados do aluno logado
+  app.get(`${apiPrefix}/alunos/usuario`, async (req, res) => {
+    try {
+      // Verificar se o usuário está autenticado
+      if (!req.isAuthenticated()) {
+        return res.status(401).json({ error: "Não autorizado" });
+      }
+      
+      // Verificar se o usuário tem um aluno associado
+      if (!req.user.alunoId) {
+        return res.status(404).json({ error: "Usuário não possui um aluno associado" });
+      }
+      
+      // Buscar os dados do aluno com todos os relacionamentos
+      const aluno = await db.query.alunos.findFirst({
+        where: eq(alunos.id, req.user.alunoId),
+        with: {
+          aulas: {
+            with: {
+              materia: true
+            },
+            orderBy: [desc(aulas.data)]
+          },
+          temas: {
+            with: {
+              materia: true
+            }
+          },
+          responsaveis: {
+            with: {
+              responsavel: true
+            }
+          }
+        }
+      });
+      
+      if (!aluno) {
+        return res.status(404).json({ error: "Aluno não encontrado" });
+      }
+      
+      return res.json(aluno);
+    } catch (error) {
+      console.error("Erro ao buscar dados do aluno logado:", error);
+      return res.status(500).json({ error: "Erro interno do servidor" });
+    }
+  });
+  
+  // API para buscar aulas do aluno logado
+  app.get(`${apiPrefix}/aulas/aluno`, async (req, res) => {
+    try {
+      // Verificar se o usuário está autenticado
+      if (!req.isAuthenticated()) {
+        return res.status(401).json({ error: "Não autorizado" });
+      }
+      
+      // Verificar se o usuário tem um aluno associado
+      if (!req.user.alunoId) {
+        return res.status(404).json({ error: "Usuário não possui um aluno associado" });
+      }
+      
+      // Buscar todas as aulas do aluno
+      const aulasAluno = await db.query.aulas.findMany({
+        where: eq(aulas.alunoId, req.user.alunoId),
+        with: {
+          materia: true
+        },
+        orderBy: [desc(aulas.data)]
+      });
+      
+      return res.json(aulasAluno);
+    } catch (error) {
+      console.error("Erro ao buscar aulas do aluno:", error);
+      return res.status(500).json({ error: "Erro interno do servidor" });
+    }
+  });
+  
+  // API para buscar aulas agendadas do aluno logado
+  app.get(`${apiPrefix}/aulas/aluno/agendadas`, async (req, res) => {
+    try {
+      // Verificar se o usuário está autenticado
+      if (!req.isAuthenticated()) {
+        return res.status(401).json({ error: "Não autorizado" });
+      }
+      
+      // Verificar se o usuário tem um aluno associado
+      if (!req.user.alunoId) {
+        return res.status(404).json({ error: "Usuário não possui um aluno associado" });
+      }
+      
+      // Buscar aulas agendadas ou confirmadas do aluno
+      const aulasAgendadas = await db.query.aulas.findMany({
+        where: and(
+          eq(aulas.alunoId, req.user.alunoId),
+          inArray(aulas.status, ["agendada", "confirmada"])
+        ),
+        with: {
+          materia: true
+        },
+        orderBy: [desc(aulas.data)]
+      });
+      
+      return res.json(aulasAgendadas);
+    } catch (error) {
+      console.error("Erro ao buscar aulas agendadas do aluno:", error);
+      return res.status(500).json({ error: "Erro interno do servidor" });
+    }
+  });
+  
+  // API para buscar horários disponíveis para agendamento
+  app.get(`${apiPrefix}/horarios-disponiveis`, async (req, res) => {
+    try {
+      // Verificar se o usuário está autenticado
+      if (!req.isAuthenticated()) {
+        return res.status(401).json({ error: "Não autorizado" });
+      }
+      
+      // Buscar horários disponíveis no banco de dados
+      const horariosDisponiveis = await db.query.horariosDisponiveis.findMany({
+        where: eq(horariosDisponiveis.disponivel, true),
+        orderBy: [
+          asc(horariosDisponiveis.diaSemana),
+          asc(horariosDisponiveis.horaInicio)
+        ]
+      });
+      
+      // Caso não existam horários cadastrados, criar alguns para demonstração
+      if (horariosDisponiveis.length === 0) {
+        // Dados de exemplo para horários disponíveis
+        const horariosExemplo = [
+          { diaSemana: 1, horaInicio: "14:00", horaFim: "15:00", disponivel: true },
+          { diaSemana: 1, horaInicio: "16:00", horaFim: "17:00", disponivel: true },
+          { diaSemana: 2, horaInicio: "09:00", horaFim: "10:00", disponivel: true },
+          { diaSemana: 2, horaInicio: "15:00", horaFim: "16:00", disponivel: true },
+          { diaSemana: 3, horaInicio: "14:00", horaFim: "15:00", disponivel: true },
+          { diaSemana: 4, horaInicio: "10:00", horaFim: "11:00", disponivel: true },
+          { diaSemana: 4, horaInicio: "16:00", horaFim: "17:00", disponivel: true },
+          { diaSemana: 5, horaInicio: "13:00", horaFim: "14:00", disponivel: true },
+          { diaSemana: 5, horaInicio: "15:00", horaFim: "16:00", disponivel: true },
+          { diaSemana: 6, horaInicio: "09:00", horaFim: "10:00", disponivel: true },
+        ];
+        
+        // Inserir os horários de exemplo no banco de dados
+        await db.insert(horariosDisponiveis).values(horariosExemplo);
+        
+        // Buscar os horários recém inseridos
+        const novosHorarios = await db.query.horariosDisponiveis.findMany({
+          where: eq(horariosDisponiveis.disponivel, true),
+          orderBy: [
+            asc(horariosDisponiveis.diaSemana),
+            asc(horariosDisponiveis.horaInicio)
+          ]
+        });
+        
+        return res.json(novosHorarios);
+      }
+      
+      return res.json(horariosDisponiveis);
+    } catch (error) {
+      console.error("Erro ao buscar horários disponíveis:", error);
+      return res.status(500).json({ error: "Erro interno do servidor" });
+    }
+  });
+
   // Criar servidor HTTP
   const httpServer = createServer(app);
 
