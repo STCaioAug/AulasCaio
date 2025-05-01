@@ -1,6 +1,12 @@
-import { Metadata } from "@/components/layout/metadata";
-import { StudentSidebar } from "@/components/layout/student-sidebar";
-import { StudentMobileNav } from "@/components/layout/student-mobile-nav";
+import React from "react";
+import { Sidebar } from "./sidebar";
+import { useAuth } from "@/hooks/use-auth";
+import { Separator } from "@/components/ui/separator";
+import { MobileNav } from "./mobile-nav";
+import { useMobile } from "@/hooks/use-mobile";
+import { Metadata } from "./metadata";
+import { StudentSidebar } from "./student-sidebar";
+import { StudentMobileNav } from "./student-mobile-nav";
 
 interface StudentLayoutProps {
   children: React.ReactNode;
@@ -8,18 +14,25 @@ interface StudentLayoutProps {
 }
 
 export function StudentLayout({ children, title = "Portal do Aluno" }: StudentLayoutProps) {
+  const { user } = useAuth();
+  const isMobile = useMobile();
+
   return (
-    <div className="min-h-screen bg-gray-50 flex flex-col">
+    <div className="flex min-h-screen bg-background">
       <Metadata pageTitle={title} />
-      <div className="flex flex-1">
-        <StudentSidebar />
-        <div className="flex-1 flex flex-col">
-          <StudentMobileNav />
-          <main className="flex-1 container mx-auto py-6 px-4 md:px-6 pb-20 md:pb-6">
-            {children}
-          </main>
+
+      {/* Sidebar para desktop */}
+      {!isMobile && <StudentSidebar />}
+
+      {/* Conteúdo principal */}
+      <main className="flex-1 overflow-x-hidden">
+        {/* Navbar para mobile */}
+        {isMobile && <StudentMobileNav />}
+
+        <div className="container px-4 md:px-6 py-6 max-w-6xl">
+          {children}
         </div>
-      </div>
+      </main>
     </div>
   );
 }

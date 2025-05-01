@@ -2,673 +2,486 @@ import React from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { useAuth } from "@/hooks/use-auth";
 import { StudentLayout } from "@/components/layout/student-layout";
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Form, FormControl, FormDescription, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
-import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Checkbox } from "@/components/ui/checkbox";
-import { Badge } from "@/components/ui/badge";
-import { zodResolver } from "@hookform/resolvers/zod";
-import { useForm } from "react-hook-form";
-import { z } from "zod";
-import { Calendar, Clock, BookMarked, BookOpen, PlusCircle, CheckCircle, XCircle, CalendarDays, BarChart } from "lucide-react";
-import { ResponsiveContainer, PieChart, Pie, Cell, BarChart as RechartsBarChart, Bar, XAxis, YAxis, Tooltip, Legend } from "recharts";
-import { queryClient, apiRequest } from "@/lib/queryClient";
-import { useToast } from "@/hooks/use-toast";
-import { format, startOfWeek, endOfWeek, eachDayOfInterval, getDay, isSameDay } from "date-fns";
+import { 
+  Dialog, 
+  DialogContent, 
+  DialogDescription, 
+  DialogFooter, 
+  DialogHeader, 
+  DialogTitle, 
+  DialogTrigger
+} from "@/components/ui/dialog";
+import { BookMarked, Calendar, PlusCircle, Check, CheckCircle, BookOpen } from "lucide-react";
+import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
-import { formatDificuldade } from "@/lib/utils";
-
-// Schema para formulário de tema de estudo
-const temaFormSchema = z.object({
-  nome: z.string().min(3, { message: "Nome deve ter pelo menos 3 caracteres" }),
-  materiaId: z.string({ required_error: "Selecione uma matéria" }),
-  dificuldade: z.string({ required_error: "Selecione a dificuldade" }),
-  dataProva: z.string().optional(),
-  observacoes: z.string().optional(),
-});
-
-type TemaFormValues = z.infer<typeof temaFormSchema>;
-
-// Schema para formulário de horas de estudo
-const horasEstudoFormSchema = z.object({
-  data: z.string({ required_error: "Informe a data" }),
-  duracao: z.string({ required_error: "Informe a duração" }),
-  temaId: z.string({ required_error: "Selecione um tema" }),
-  descricao: z.string().optional(),
-});
-
-type HorasEstudoFormValues = z.infer<typeof horasEstudoFormSchema>;
+import { PieChart } from "@/components/graficos/pie-chart";
+import { useToast } from "@/hooks/use-toast";
+import { queryClient, apiRequest } from "@/lib/queryClient";
+import { Badge } from "@/components/ui/badge";
+import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 
 export default function RoteiroPage() {
   const { user } = useAuth();
   const { toast } = useToast();
-  const [temaDialogOpen, setTemaDialogOpen] = React.useState(false);
-  const [horasDialogOpen, setHorasDialogOpen] = React.useState(false);
-  const [activeTab, setActiveTab] = React.useState("temas");
+  const [activeTab, setActiveTab] = React.useState("pendentes");
+  const [dialogOpen, setDialogOpen] = React.useState(false);
+  const [formData, setFormData] = React.useState({
+    tema: "",
+    materiaId: "",
+    dataDaProva: "",
+    descricao: "",
+    dificuldade: "media"
+  });
 
-  // Buscar dados do aluno logado
-  const { data: alunoData, isLoading } = useQuery({
+  // Buscar dados do aluno
+  const { data: alunoData, isLoading: isLoadingAluno } = useQuery({
     queryKey: ["/api/alunos/usuario"],
     enabled: !!user?.alunoId
   });
 
-  // Buscar matérias disponíveis
-  const { data: materias } = useQuery({
-    queryKey: ["/api/materias"],
-  });
-
-  // Formulário para criar tema de estudo
-  const temaForm = useForm<TemaFormValues>({
-    resolver: zodResolver(temaFormSchema),
-    defaultValues: {
-      nome: "",
-      materiaId: "",
-      dificuldade: "medio",
-      dataProva: "",
-      observacoes: "",
-    },
-  });
-
-  // Formulário para registrar horas de estudo
-  const horasForm = useForm<HorasEstudoFormValues>({
-    resolver: zodResolver(horasEstudoFormSchema),
-    defaultValues: {
-      data: format(new Date(), "yyyy-MM-dd"),
-      duracao: "1",
-      temaId: "",
-      descricao: "",
-    },
-  });
-
-  // Mutação para criar tema
-  const createTemaMutation = useMutation({
-    mutationFn: async (data: TemaFormValues) => {
-      const res = await apiRequest("POST", "/api/temas", {
-        ...data,
-        alunoId: user?.alunoId,
-        estudado: false,
-        materiaId: parseInt(data.materiaId),
-        dataProva: data.dataProva ? new Date(data.dataProva).toISOString() : undefined,
-      });
-      return res.json();
+  // Mutation para adicionar um novo tema de estudo
+  const adicionarTemaMutation = useMutation({
+    mutationFn: async (data: any) => {
+      const res = await apiRequest("POST", "/api/temas", data);
+      return await res.json();
     },
     onSuccess: () => {
-      toast({
-        title: "Tema cadastrado",
-        description: "O tema de estudo foi adicionado com sucesso"
-      });
-      setTemaDialogOpen(false);
-      temaForm.reset();
       queryClient.invalidateQueries({ queryKey: ["/api/alunos/usuario"] });
-    },
-    onError: (error: Error) => {
-      toast({
-        title: "Erro",
-        description: `Não foi possível cadastrar o tema: ${error.message}`,
-        variant: "destructive"
-      });
-    }
-  });
-
-  // Mutação para registrar horas de estudo
-  const registrarHorasMutation = useMutation({
-    mutationFn: async (data: HorasEstudoFormValues) => {
-      // Em uma implementação real, salvaria no banco de dados
-      // Aqui vamos apenas simular o sucesso
-      return new Promise((resolve) => {
-        setTimeout(() => resolve({ success: true }), 1000);
-      });
-    },
-    onSuccess: () => {
-      toast({
-        title: "Horas registradas",
-        description: "As horas de estudo foram registradas com sucesso"
-      });
-      setHorasDialogOpen(false);
-      horasForm.reset({
-        data: format(new Date(), "yyyy-MM-dd"),
-        duracao: "1",
-        temaId: "",
+      setDialogOpen(false);
+      setFormData({
+        tema: "",
+        materiaId: "",
+        dataDaProva: "",
         descricao: "",
+        dificuldade: "media"
       });
-      // Em uma implementação real, invalidaria as queries
-      // queryClient.invalidateQueries({ queryKey: ["/api/alunos/usuario"] });
-    },
-    onError: (error: Error) => {
       toast({
-        title: "Erro",
-        description: `Não foi possível registrar as horas: ${error.message}`,
-        variant: "destructive"
+        title: "Tema adicionado",
+        description: "O tema de estudo foi adicionado com sucesso ao seu roteiro.",
       });
-    }
+    },
+    onError: (error) => {
+      toast({
+        title: "Erro ao adicionar tema",
+        description: error.message || "Ocorreu um erro ao tentar adicionar o tema. Tente novamente.",
+        variant: "destructive",
+      });
+    },
   });
 
-  // Mutação para marcar tema como estudado
-  const updateTemaMutation = useMutation({
-    mutationFn: async (data: { id: number, estudado: boolean }) => {
-      const res = await apiRequest("PUT", `/api/temas/${data.id}`, { estudado: data.estudado });
-      return res.json();
+  // Mutation para marcar um tema como estudado
+  const marcarEstudadoMutation = useMutation({
+    mutationFn: async (temaId: number) => {
+      const res = await apiRequest("PATCH", `/api/temas/${temaId}/estudado`, { estudado: true });
+      return await res.json();
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/alunos/usuario"] });
       toast({
-        title: "Tema atualizado",
-        description: "O status do tema foi atualizado com sucesso"
+        title: "Tema concluído",
+        description: "Parabéns! O tema foi marcado como estudado.",
       });
     },
-    onError: (error: Error) => {
+    onError: (error) => {
       toast({
-        title: "Erro",
-        description: `Não foi possível atualizar o tema: ${error.message}`,
-        variant: "destructive"
+        title: "Erro ao atualizar tema",
+        description: error.message || "Ocorreu um erro ao marcar o tema como estudado.",
+        variant: "destructive",
       });
-    }
+    },
   });
 
-  // Submissão do formulário de tema
-  const onSubmitTema = (data: TemaFormValues) => {
-    createTemaMutation.mutate(data);
-  };
-
-  // Submissão do formulário de horas
-  const onSubmitHoras = (data: HorasEstudoFormValues) => {
-    registrarHorasMutation.mutate(data);
-  };
-
-  // Dados para gráficos
-  const horasEstudoPorDia = [
-    { name: "Dom", horas: 0 },
-    { name: "Seg", horas: 2 },
-    { name: "Ter", horas: 1.5 },
-    { name: "Qua", horas: 3 },
-    { name: "Qui", horas: 2 },
-    { name: "Sex", horas: 1 },
-    { name: "Sáb", horas: 0.5 },
+  // Lista de matérias disponíveis
+  const materias = [
+    { id: 1, nome: "Matemática" },
+    { id: 2, nome: "Física" },
+    { id: 3, nome: "Química" },
+    { id: 4, nome: "Biologia" },
+    { id: 5, nome: "História" },
+    { id: 6, nome: "Geografia" },
+    { id: 7, nome: "Português" },
+    { id: 8, nome: "Inglês" },
+    { id: 9, nome: "Filosofia" },
+    { id: 10, nome: "Sociologia" },
   ];
 
-  const horasEstudoPorMateria = [
-    { name: "Matemática", value: 8 },
-    { name: "Física", value: 5 },
-    { name: "Química", value: 4 },
-    { name: "Biologia", value: 3 },
+  // Níveis de dificuldade
+  const niveisDificuldade = [
+    { value: "facil", label: "Fácil" },
+    { value: "media", label: "Média" },
+    { value: "dificil", label: "Difícil" },
   ];
 
-  const COLORS = ['#0088FE', '#00C49F', '#FFBB28', '#FF8042', '#8884D8'];
+  // Função para adicionar um novo tema
+  const handleAdicionarTema = () => {
+    if (!formData.tema || !formData.materiaId) {
+      toast({
+        title: "Dados incompletos",
+        description: "Preencha pelo menos o tema e a matéria.",
+        variant: "destructive",
+      });
+      return;
+    }
 
-  // Filtragem de temas
-  const temasAtivos = React.useMemo(() => {
+    const temaData = {
+      titulo: formData.tema,
+      materiaId: parseInt(formData.materiaId),
+      alunoId: user?.alunoId,
+      dificuldade: formData.dificuldade,
+      dataDaProva: formData.dataDaProva ? new Date(formData.dataDaProva).toISOString() : null,
+      descricao: formData.descricao || null,
+      estudado: false
+    };
+
+    adicionarTemaMutation.mutate(temaData);
+  };
+
+  // Função para marcar um tema como estudado
+  const handleMarcarEstudado = (temaId: number) => {
+    marcarEstudadoMutation.mutate(temaId);
+  };
+
+  // Filtrar temas pendentes e concluídos
+  const temasPendentes = React.useMemo(() => {
     if (!alunoData?.temas) return [];
     return alunoData.temas.filter((tema: any) => !tema.estudado);
   }, [alunoData?.temas]);
 
-  const temasEstudados = React.useMemo(() => {
+  const temasConcluidos = React.useMemo(() => {
     if (!alunoData?.temas) return [];
     return alunoData.temas.filter((tema: any) => tema.estudado);
   }, [alunoData?.temas]);
 
-  // Temas com provas próximas
-  const temasComProvas = React.useMemo(() => {
-    if (!alunoData?.temas) return [];
-    const hoje = new Date();
-    return alunoData.temas
-      .filter((tema: any) => tema.dataProva && new Date(tema.dataProva) > hoje)
-      .sort((a: any, b: any) => new Date(a.dataProva).getTime() - new Date(b.dataProva).getTime());
+  // Formatar data
+  const formatarData = (dataString: string | null) => {
+    if (!dataString) return "Não informada";
+    return format(new Date(dataString), "dd/MM/yyyy");
+  };
+
+  // Dados para o gráfico de matérias
+  const dadosMateriasChart = React.useMemo(() => {
+    if (!alunoData?.temas || alunoData.temas.length === 0) return [];
+    
+    const materiaCount: Record<string, { total: number, estudados: number }> = {};
+    
+    alunoData.temas.forEach((tema: any) => {
+      const nomeMateria = tema.materia?.nome || "Sem matéria";
+      if (!materiaCount[nomeMateria]) {
+        materiaCount[nomeMateria] = { total: 0, estudados: 0 };
+      }
+      materiaCount[nomeMateria].total += 1;
+      if (tema.estudado) {
+        materiaCount[nomeMateria].estudados += 1;
+      }
+    });
+    
+    return Object.entries(materiaCount).map(([nome, { total, estudados }]) => ({
+      name: nome,
+      value: total
+    }));
   }, [alunoData?.temas]);
+
+  // Dados para gráfico de progresso
+  const dadosProgressoChart = React.useMemo(() => {
+    if (!alunoData?.temas || alunoData.temas.length === 0) {
+      return [];
+    }
+    
+    const total = alunoData.temas.length;
+    const estudados = alunoData.temas.filter((tema: any) => tema.estudado).length;
+    const pendentes = total - estudados;
+    
+    return [
+      { name: "Estudados", value: estudados },
+      { name: "Pendentes", value: pendentes }
+    ];
+  }, [alunoData?.temas]);
+
+  // Cores para o gráfico de pizza
+  const CORES_GRAFICO = ['#0088FE', '#00C49F', '#FFBB28', '#FF8042', '#8884D8', '#8DD1E1'];
+  const CORES_PROGRESSO = ['#4CAF50', '#FF9800'];
 
   return (
     <StudentLayout title="Roteiro de Estudos">
-      <div className="space-y-6">
+      <div className="space-y-8">
         <div className="flex justify-between items-center">
           <h1 className="text-2xl font-heading font-bold">Roteiro de Estudos</h1>
-          <div className="space-x-2">
-            <Button 
-              variant="outline" 
-              onClick={() => setHorasDialogOpen(true)}
-            >
-              <Clock className="mr-2 h-4 w-4" /> Registrar horas
-            </Button>
-            <Button 
-              onClick={() => setTemaDialogOpen(true)}
-            >
-              <PlusCircle className="mr-2 h-4 w-4" /> Novo tema
-            </Button>
-          </div>
+          <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
+            <DialogTrigger asChild>
+              <Button>
+                <PlusCircle className="mr-2 h-4 w-4" />
+                Adicionar Tema
+              </Button>
+            </DialogTrigger>
+            <DialogContent>
+              <DialogHeader>
+                <DialogTitle>Adicionar Tema de Estudo</DialogTitle>
+                <DialogDescription>
+                  Adicione um novo tema para seu roteiro de estudos
+                </DialogDescription>
+              </DialogHeader>
+              <div className="space-y-4 py-2">
+                <div className="space-y-2">
+                  <label className="text-sm font-medium">Tema</label>
+                  <input
+                    type="text"
+                    className="w-full rounded-md border border-gray-300 p-2"
+                    placeholder="Ex: Equações do 2º grau"
+                    value={formData.tema}
+                    onChange={(e) => setFormData({ ...formData, tema: e.target.value })}
+                  />
+                </div>
+                <div className="space-y-2">
+                  <label className="text-sm font-medium">Matéria</label>
+                  <select
+                    className="w-full rounded-md border border-gray-300 p-2"
+                    value={formData.materiaId}
+                    onChange={(e) => setFormData({ ...formData, materiaId: e.target.value })}
+                  >
+                    <option value="">Selecione uma matéria</option>
+                    {materias.map((materia) => (
+                      <option key={materia.id} value={materia.id}>
+                        {materia.nome}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+                <div className="space-y-2">
+                  <label className="text-sm font-medium">Data da Prova (opcional)</label>
+                  <input
+                    type="date"
+                    className="w-full rounded-md border border-gray-300 p-2"
+                    value={formData.dataDaProva}
+                    onChange={(e) => setFormData({ ...formData, dataDaProva: e.target.value })}
+                  />
+                </div>
+                <div className="space-y-2">
+                  <label className="text-sm font-medium">Descrição (opcional)</label>
+                  <textarea
+                    className="w-full rounded-md border border-gray-300 p-2"
+                    rows={3}
+                    placeholder="Detalhes sobre o tema ou tópicos a estudar"
+                    value={formData.descricao}
+                    onChange={(e) => setFormData({ ...formData, descricao: e.target.value })}
+                  />
+                </div>
+                <div className="space-y-2">
+                  <label className="text-sm font-medium">Nível de Dificuldade</label>
+                  <select
+                    className="w-full rounded-md border border-gray-300 p-2"
+                    value={formData.dificuldade}
+                    onChange={(e) => setFormData({ ...formData, dificuldade: e.target.value })}
+                  >
+                    {niveisDificuldade.map((nivel) => (
+                      <option key={nivel.value} value={nivel.value}>
+                        {nivel.label}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              </div>
+              <DialogFooter>
+                <Button variant="outline" onClick={() => setDialogOpen(false)}>
+                  Cancelar
+                </Button>
+                <Button onClick={handleAdicionarTema} disabled={adicionarTemaMutation.isPending}>
+                  {adicionarTemaMutation.isPending ? "Salvando..." : "Salvar"}
+                </Button>
+              </DialogFooter>
+            </DialogContent>
+          </Dialog>
         </div>
 
-        {temasComProvas.length > 0 && (
-          <Card className="border-orange-200 bg-orange-50">
-            <CardHeader className="pb-2">
-              <CardTitle className="text-orange-800 flex items-center gap-2">
-                <CalendarDays className="h-5 w-5" />
-                Provas Próximas
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-2">
-                {temasComProvas.slice(0, 3).map((tema: any) => (
-                  <div key={tema.id} className="flex justify-between items-center p-2 bg-white rounded border border-orange-100">
-                    <div className="flex items-center gap-2">
-                      <Badge variant="outline" className="bg-orange-100 text-orange-800 border-orange-200">
-                        {format(new Date(tema.dataProva), "dd/MM/yyyy")}
-                      </Badge>
-                      <span className="font-medium">{tema.nome}</span>
-                    </div>
-                    <Badge variant="outline">{tema.materia?.nome || "Matéria"}</Badge>
-                  </div>
-                ))}
-              </div>
-            </CardContent>
-          </Card>
-        )}
-
+        {/* Gráficos e Estatísticas */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           <Card>
             <CardHeader>
-              <CardTitle>Horas de Estudo na Semana</CardTitle>
+              <CardTitle>Progresso de Estudos</CardTitle>
+              <CardDescription>
+                Status atual do seu roteiro
+              </CardDescription>
             </CardHeader>
-            <CardContent>
-              <div className="h-64">
-                <ResponsiveContainer width="100%" height="100%">
-                  <RechartsBarChart
-                    data={horasEstudoPorDia}
-                    margin={{ top: 5, right: 30, left: 20, bottom: 5 }}
-                  >
-                    <XAxis dataKey="name" />
-                    <YAxis />
-                    <Tooltip formatter={(value) => [`${value} horas`, 'Tempo de estudo']} />
-                    <Bar dataKey="horas" fill="#8884d8" />
-                  </RechartsBarChart>
-                </ResponsiveContainer>
-              </div>
+            <CardContent className="h-80">
+              {dadosProgressoChart.length > 0 ? (
+                <PieChart 
+                  data={dadosProgressoChart} 
+                  title=""
+                  nameKey="name"
+                  valueKey="value"
+                  colors={CORES_PROGRESSO}
+                  height={300}
+                  legend={true}
+                />
+              ) : (
+                <div className="flex items-center justify-center h-full text-gray-500">
+                  <div className="text-center">
+                    <BookMarked className="w-12 h-12 mx-auto text-gray-300 mb-2" />
+                    <p>Nenhum tema adicionado</p>
+                    <Button 
+                      variant="link" 
+                      onClick={() => setDialogOpen(true)}
+                      className="mt-2"
+                    >
+                      Adicionar seu primeiro tema
+                    </Button>
+                  </div>
+                </div>
+              )}
             </CardContent>
           </Card>
 
           <Card>
             <CardHeader>
               <CardTitle>Distribuição por Matéria</CardTitle>
+              <CardDescription>
+                Temas por disciplina
+              </CardDescription>
             </CardHeader>
-            <CardContent>
-              <div className="h-64">
-                <ResponsiveContainer width="100%" height="100%">
-                  <PieChart>
-                    <Pie
-                      data={horasEstudoPorMateria}
-                      cx="50%"
-                      cy="50%"
-                      labelLine={false}
-                      label={({ name, percent }) => `${name}: ${(percent * 100).toFixed(0)}%`}
-                      outerRadius={80}
-                      fill="#8884d8"
-                      dataKey="value"
-                    >
-                      {horasEstudoPorMateria.map((entry, index) => (
-                        <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
-                      ))}
-                    </Pie>
-                    <Tooltip formatter={(value) => [`${value} horas`, 'Tempo de estudo']} />
-                  </PieChart>
-                </ResponsiveContainer>
-              </div>
+            <CardContent className="h-80">
+              {dadosMateriasChart.length > 0 ? (
+                <PieChart 
+                  data={dadosMateriasChart} 
+                  title=""
+                  nameKey="name"
+                  valueKey="value"
+                  colors={CORES_GRAFICO}
+                  height={300}
+                  legend={true}
+                />
+              ) : (
+                <div className="flex items-center justify-center h-full text-gray-500">
+                  <div className="text-center">
+                    <BookOpen className="w-12 h-12 mx-auto text-gray-300 mb-2" />
+                    <p>Nenhum tema adicionado</p>
+                  </div>
+                </div>
+              )}
             </CardContent>
           </Card>
         </div>
 
+        {/* Lista de Temas */}
         <Card>
           <CardHeader>
             <CardTitle>Meus Temas de Estudo</CardTitle>
-            <Tabs defaultValue="temas" value={activeTab} onValueChange={setActiveTab}>
+            <Tabs defaultValue="pendentes" value={activeTab} onValueChange={setActiveTab}>
               <TabsList>
-                <TabsTrigger value="temas">Temas Pendentes</TabsTrigger>
-                <TabsTrigger value="estudados">Temas Estudados</TabsTrigger>
+                <TabsTrigger value="pendentes">Pendentes</TabsTrigger>
+                <TabsTrigger value="concluidos">Concluídos</TabsTrigger>
               </TabsList>
             </Tabs>
           </CardHeader>
           <CardContent>
-            {isLoading ? (
-              <div className="text-center py-4">Carregando temas de estudo...</div>
-            ) : (
-              <TabsContent value="temas" className="mt-0">
-                {temasAtivos.length > 0 ? (
+            <TabsContent value="pendentes" className="mt-0">
+              {isLoadingAluno ? (
+                <div className="text-center py-6">Carregando temas...</div>
+              ) : temasPendentes.length > 0 ? (
+                <div className="rounded-md border overflow-hidden">
                   <Table>
                     <TableHeader>
                       <TableRow>
                         <TableHead>Tema</TableHead>
                         <TableHead>Matéria</TableHead>
-                        <TableHead>Dificuldade</TableHead>
                         <TableHead>Data da Prova</TableHead>
+                        <TableHead>Dificuldade</TableHead>
                         <TableHead>Ações</TableHead>
                       </TableRow>
                     </TableHeader>
                     <TableBody>
-                      {temasAtivos.map((tema: any) => (
+                      {temasPendentes.map((tema: any) => (
                         <TableRow key={tema.id}>
-                          <TableCell className="font-medium">{tema.nome}</TableCell>
-                          <TableCell>{tema.materia?.nome || "—"}</TableCell>
+                          <TableCell className="font-medium">{tema.titulo}</TableCell>
+                          <TableCell>{tema.materia?.nome || "Não especificada"}</TableCell>
+                          <TableCell>{formatarData(tema.dataDaProva)}</TableCell>
                           <TableCell>
-                            <Badge variant="outline">{formatDificuldade(tema.dificuldade)}</Badge>
-                          </TableCell>
-                          <TableCell>
-                            {tema.dataProva ? format(new Date(tema.dataProva), "dd/MM/yyyy") : "—"}
+                            <Badge 
+                              variant={tema.dificuldade === "dificil" ? "destructive" : 
+                                     tema.dificuldade === "facil" ? "outline" : "secondary"}
+                            >
+                              {tema.dificuldade === "facil" ? "Fácil" : 
+                               tema.dificuldade === "media" ? "Médio" : "Difícil"}
+                            </Badge>
                           </TableCell>
                           <TableCell>
                             <Button 
                               variant="ghost" 
-                              size="sm"
-                              onClick={() => updateTemaMutation.mutate({ id: tema.id, estudado: true })}
+                              size="sm" 
+                              onClick={() => handleMarcarEstudado(tema.id)}
+                              className="hover:bg-green-100 text-green-600"
                             >
-                              <CheckCircle className="h-4 w-4 mr-1" /> Concluído
+                              <CheckCircle className="mr-1 h-4 w-4" /> 
+                              Concluir
                             </Button>
                           </TableCell>
                         </TableRow>
                       ))}
                     </TableBody>
                   </Table>
-                ) : (
-                  <div className="text-center py-4 text-gray-500">
-                    Você não tem temas de estudo pendentes.
-                  </div>
-                )}
-              </TabsContent>
-            )}
-
-            <TabsContent value="estudados" className="mt-0">
-              {isLoading ? (
-                <div className="text-center py-4">Carregando temas estudados...</div>
-              ) : temasEstudados.length > 0 ? (
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead>Tema</TableHead>
-                      <TableHead>Matéria</TableHead>
-                      <TableHead>Dificuldade</TableHead>
-                      <TableHead>Ações</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {temasEstudados.map((tema: any) => (
-                      <TableRow key={tema.id}>
-                        <TableCell className="font-medium">{tema.nome}</TableCell>
-                        <TableCell>{tema.materia?.nome || "—"}</TableCell>
-                        <TableCell>
-                          <Badge variant="outline">{formatDificuldade(tema.dificuldade)}</Badge>
-                        </TableCell>
-                        <TableCell>
-                          <Button 
-                            variant="ghost" 
-                            size="sm"
-                            onClick={() => updateTemaMutation.mutate({ id: tema.id, estudado: false })}
-                          >
-                            <XCircle className="h-4 w-4 mr-1" /> Reabrir
-                          </Button>
-                        </TableCell>
-                      </TableRow>
-                    ))}
-                  </TableBody>
-                </Table>
+                </div>
               ) : (
-                <div className="text-center py-4 text-gray-500">
-                  Você ainda não concluiu nenhum tema de estudo.
+                <div className="text-center py-12 text-gray-500">
+                  <BookMarked className="h-12 w-12 mx-auto text-gray-300 mb-4" />
+                  <p>Você não possui temas pendentes de estudo</p>
+                  <Button variant="link" onClick={() => setDialogOpen(true)} className="mt-2">
+                    Adicionar um novo tema de estudo
+                  </Button>
+                </div>
+              )}
+            </TabsContent>
+
+            <TabsContent value="concluidos" className="mt-0">
+              {isLoadingAluno ? (
+                <div className="text-center py-6">Carregando temas...</div>
+              ) : temasConcluidos.length > 0 ? (
+                <div className="rounded-md border overflow-hidden">
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead>Tema</TableHead>
+                        <TableHead>Matéria</TableHead>
+                        <TableHead>Data da Prova</TableHead>
+                        <TableHead>Dificuldade</TableHead>
+                        <TableHead>Status</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {temasConcluidos.map((tema: any) => (
+                        <TableRow key={tema.id}>
+                          <TableCell className="font-medium">{tema.titulo}</TableCell>
+                          <TableCell>{tema.materia?.nome || "Não especificada"}</TableCell>
+                          <TableCell>{formatarData(tema.dataDaProva)}</TableCell>
+                          <TableCell>
+                            <Badge 
+                              variant={tema.dificuldade === "dificil" ? "destructive" : 
+                                     tema.dificuldade === "facil" ? "outline" : "secondary"}
+                            >
+                              {tema.dificuldade === "facil" ? "Fácil" : 
+                               tema.dificuldade === "media" ? "Médio" : "Difícil"}
+                            </Badge>
+                          </TableCell>
+                          <TableCell>
+                            <Badge variant="outline" className="bg-green-100 text-green-700 border-green-200">
+                              <Check className="mr-1 h-3 w-3" /> Concluído
+                            </Badge>
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                </div>
+              ) : (
+                <div className="text-center py-12 text-gray-500">
+                  <Check className="h-12 w-12 mx-auto text-gray-300 mb-4" />
+                  <p>Você ainda não concluiu nenhum tema de estudo</p>
                 </div>
               )}
             </TabsContent>
           </CardContent>
         </Card>
       </div>
-
-      {/* Diálogo para criar novo tema */}
-      <Dialog open={temaDialogOpen} onOpenChange={setTemaDialogOpen}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>Novo Tema de Estudo</DialogTitle>
-            <DialogDescription>
-              Adicione um novo tema ou conteúdo para estudar
-            </DialogDescription>
-          </DialogHeader>
-
-          <Form {...temaForm}>
-            <form onSubmit={temaForm.handleSubmit(onSubmitTema)} className="space-y-4">
-              <FormField
-                control={temaForm.control}
-                name="nome"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Nome do tema</FormLabel>
-                    <FormControl>
-                      <Input placeholder="Ex: Funções do segundo grau" {...field} />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-
-              <FormField
-                control={temaForm.control}
-                name="materiaId"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Matéria</FormLabel>
-                    <Select
-                      onValueChange={field.onChange}
-                      defaultValue={field.value}
-                    >
-                      <FormControl>
-                        <SelectTrigger>
-                          <SelectValue placeholder="Selecione uma matéria" />
-                        </SelectTrigger>
-                      </FormControl>
-                      <SelectContent>
-                        {materias?.map((materia: any) => (
-                          <SelectItem key={materia.id} value={materia.id.toString()}>
-                            {materia.nome}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-
-              <FormField
-                control={temaForm.control}
-                name="dificuldade"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Dificuldade</FormLabel>
-                    <Select
-                      onValueChange={field.onChange}
-                      defaultValue={field.value}
-                    >
-                      <FormControl>
-                        <SelectTrigger>
-                          <SelectValue placeholder="Selecione a dificuldade" />
-                        </SelectTrigger>
-                      </FormControl>
-                      <SelectContent>
-                        <SelectItem value="facil">Fácil</SelectItem>
-                        <SelectItem value="medio">Médio</SelectItem>
-                        <SelectItem value="dificil">Difícil</SelectItem>
-                      </SelectContent>
-                    </Select>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-
-              <FormField
-                control={temaForm.control}
-                name="dataProva"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Data da prova (opcional)</FormLabel>
-                    <FormControl>
-                      <Input type="date" {...field} />
-                    </FormControl>
-                    <FormDescription>
-                      Se este tema for para uma prova, informe a data
-                    </FormDescription>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-
-              <FormField
-                control={temaForm.control}
-                name="observacoes"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Observações (opcional)</FormLabel>
-                    <FormControl>
-                      <Input {...field} />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-
-              <DialogFooter>
-                <Button 
-                  type="button" 
-                  variant="outline" 
-                  onClick={() => setTemaDialogOpen(false)}
-                >
-                  Cancelar
-                </Button>
-                <Button 
-                  type="submit"
-                  disabled={createTemaMutation.isPending}
-                >
-                  {createTemaMutation.isPending ? "Salvando..." : "Salvar"}
-                </Button>
-              </DialogFooter>
-            </form>
-          </Form>
-        </DialogContent>
-      </Dialog>
-
-      {/* Diálogo para registrar horas de estudo */}
-      <Dialog open={horasDialogOpen} onOpenChange={setHorasDialogOpen}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>Registrar Horas de Estudo</DialogTitle>
-            <DialogDescription>
-              Registre o tempo que você dedicou ao estudo
-            </DialogDescription>
-          </DialogHeader>
-
-          <Form {...horasForm}>
-            <form onSubmit={horasForm.handleSubmit(onSubmitHoras)} className="space-y-4">
-              <FormField
-                control={horasForm.control}
-                name="data"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Data</FormLabel>
-                    <FormControl>
-                      <Input type="date" {...field} />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-
-              <FormField
-                control={horasForm.control}
-                name="duracao"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Duração (horas)</FormLabel>
-                    <Select
-                      onValueChange={field.onChange}
-                      defaultValue={field.value}
-                    >
-                      <FormControl>
-                        <SelectTrigger>
-                          <SelectValue placeholder="Selecione a duração" />
-                        </SelectTrigger>
-                      </FormControl>
-                      <SelectContent>
-                        <SelectItem value="0.5">30 minutos</SelectItem>
-                        <SelectItem value="1">1 hora</SelectItem>
-                        <SelectItem value="1.5">1 hora e meia</SelectItem>
-                        <SelectItem value="2">2 horas</SelectItem>
-                        <SelectItem value="2.5">2 horas e meia</SelectItem>
-                        <SelectItem value="3">3 horas</SelectItem>
-                        <SelectItem value="4">4 horas</SelectItem>
-                        <SelectItem value="5">5 horas</SelectItem>
-                      </SelectContent>
-                    </Select>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-
-              <FormField
-                control={horasForm.control}
-                name="temaId"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Tema estudado</FormLabel>
-                    <Select
-                      onValueChange={field.onChange}
-                      defaultValue={field.value}
-                    >
-                      <FormControl>
-                        <SelectTrigger>
-                          <SelectValue placeholder="Selecione um tema" />
-                        </SelectTrigger>
-                      </FormControl>
-                      <SelectContent>
-                        {temasAtivos.map((tema: any) => (
-                          <SelectItem key={tema.id} value={tema.id.toString()}>
-                            {tema.nome} ({tema.materia?.nome || "Sem matéria"})
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-
-              <FormField
-                control={horasForm.control}
-                name="descricao"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Descrição (opcional)</FormLabel>
-                    <FormControl>
-                      <Input placeholder="O que você estudou?" {...field} />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-
-              <DialogFooter>
-                <Button 
-                  type="button" 
-                  variant="outline" 
-                  onClick={() => setHorasDialogOpen(false)}
-                >
-                  Cancelar
-                </Button>
-                <Button 
-                  type="submit"
-                  disabled={registrarHorasMutation.isPending}
-                >
-                  {registrarHorasMutation.isPending ? "Registrando..." : "Registrar"}
-                </Button>
-              </DialogFooter>
-            </form>
-          </Form>
-        </DialogContent>
-      </Dialog>
     </StudentLayout>
   );
 }

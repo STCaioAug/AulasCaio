@@ -1,16 +1,11 @@
-import { Link, useLocation } from "wouter";
-import { cn } from "@/lib/utils";
+import React from "react";
+import { useLocation, Link } from "wouter";
 import { useAuth } from "@/hooks/use-auth";
-import { 
-  BookOpen, 
-  FileText, 
-  Calendar, 
-  BookMarked, 
-  LogOut 
-} from "lucide-react";
+import { Separator } from "@/components/ui/separator";
 import { Button } from "@/components/ui/button";
+import { GraduationCap, LogOut, Calendar, BookOpen, FileText, BookMarked } from "lucide-react";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
+import { getInitials } from "@/lib/utils";
 
 interface NavItemProps {
   href: string;
@@ -22,94 +17,99 @@ interface NavItemProps {
 function NavItem({ href, icon, label, active }: NavItemProps) {
   return (
     <Link href={href}>
-      <Button
-        variant="ghost"
-        className={cn(
-          "w-full justify-start items-center mb-1 hover:bg-gray-100",
-          active ? "bg-primary-600 text-white hover:bg-primary-700 hover:text-white" : "text-gray-600 bg-white"
-        )}
+      <a
+        className={`flex items-center gap-2 px-3 py-2 rounded-md ${active
+          ? "bg-primary-100 text-primary-700"
+          : "text-gray-700 hover:bg-gray-100"}
+        `}
       >
-        <span className="mr-3">{icon}</span> {label}
-      </Button>
+        {icon}
+        <span className="font-medium">{label}</span>
+      </a>
     </Link>
   );
 }
 
 export function StudentSidebar() {
-  const [location] = useLocation();
   const { user, logoutMutation } = useAuth();
+  const [location] = useLocation();
+
+  // Menu items do portal do aluno
+  const menuItems = [
+    {
+      href: "/aluno/aulas",
+      icon: <BookOpen className="h-5 w-5" />,
+      label: "Minhas Aulas",
+      active: location === "/aluno/aulas"
+    },
+    {
+      href: "/aluno/relatorios",
+      icon: <FileText className="h-5 w-5" />,
+      label: "Relatórios",
+      active: location === "/aluno/relatorios"
+    },
+    {
+      href: "/aluno/horarios",
+      icon: <Calendar className="h-5 w-5" />,
+      label: "Horários",
+      active: location === "/aluno/horarios"
+    },
+    {
+      href: "/aluno/roteiro",
+      icon: <BookMarked className="h-5 w-5" />,
+      label: "Roteiro de Estudos",
+      active: location === "/aluno/roteiro"
+    }
+  ];
 
   const handleLogout = () => {
     logoutMutation.mutate();
   };
 
-  const getInitials = (name: string) => {
-    return name
-      .split(' ')
-      .map(part => part[0])
-      .join('')
-      .toUpperCase()
-      .slice(0, 2);
-  };
-
   return (
-    <aside className="hidden md:flex md:w-64 flex-col bg-white shadow-md z-10 h-screen">
-      <div className="p-4 border-b flex flex-col items-center">
-        <h1 className="text-xl font-heading font-semibold text-primary-600">Eleve Estudos</h1>
-        <p className="text-sm text-gray-500">Portal do Aluno</p>
-      </div>
-      
-      <nav className="flex-1 p-4 space-y-1">
-        <NavItem 
-          href="/aluno/aulas" 
-          icon={<BookOpen size={18} />} 
-          label="Minhas Aulas" 
-          active={location === '/aluno/aulas' || location === '/'} 
-        />
-        <NavItem 
-          href="/aluno/relatorios" 
-          icon={<FileText size={18} />} 
-          label="Relatórios" 
-          active={location.startsWith('/aluno/relatorios')} 
-        />
-        <NavItem 
-          href="/aluno/horarios" 
-          icon={<Calendar size={18} />} 
-          label="Horários" 
-          active={location.startsWith('/aluno/horarios')} 
-        />
-        <NavItem 
-          href="/aluno/roteiro" 
-          icon={<BookMarked size={18} />} 
-          label="Roteiro de Estudos" 
-          active={location.startsWith('/aluno/roteiro')} 
-        />
-      </nav>
-      
-      <div className="p-4 border-t">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center">
-            <Avatar className="h-8 w-8 bg-primary-600 text-white">
-              <AvatarFallback>{user?.nome ? getInitials(user.nome) : 'A'}</AvatarFallback>
-            </Avatar>
-            <div className="ml-3">
-              <p className="text-sm font-medium">{user?.nome || 'Aluno'}</p>
-              <p className="text-xs text-gray-500">{user?.email || ''}</p>
-            </div>
+    <aside className="w-64 border-r h-screen sticky top-0 flex flex-col bg-white">
+      <div className="p-4">
+        <div className="flex items-center gap-2 mb-8">
+          <GraduationCap className="h-8 w-8 text-primary-600" />
+          <div>
+            <h1 className="font-bold text-lg font-heading">Eleve Estudos</h1>
+            <p className="text-xs text-gray-500">Portal do Aluno</p>
           </div>
-          <TooltipProvider>
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <Button variant="ghost" size="icon" onClick={handleLogout} disabled={logoutMutation.isPending}>
-                  <LogOut className="h-4 w-4 text-gray-500" />
-                </Button>
-              </TooltipTrigger>
-              <TooltipContent>
-                <p>Sair</p>
-              </TooltipContent>
-            </Tooltip>
-          </TooltipProvider>
         </div>
+
+        {/* Perfil do usuário */}
+        <div className="flex items-center gap-3 mb-6">
+          <Avatar>
+            <AvatarFallback className="bg-primary-100 text-primary-700">
+              {user?.nome ? getInitials(user.nome) : user?.username?.substring(0, 2).toUpperCase() || "AL"}
+            </AvatarFallback>
+          </Avatar>
+          <div>
+            <p className="font-medium">{user?.nome || user?.username}</p>
+            <p className="text-xs text-gray-500">Aluno</p>
+          </div>
+        </div>
+
+        <Separator className="mb-4" />
+
+        {/* Menu de navegação */}
+        <nav className="space-y-1">
+          {menuItems.map((item) => (
+            <NavItem key={item.href} {...item} />
+          ))}
+        </nav>
+      </div>
+
+      <div className="mt-auto p-4">
+        <Separator className="mb-4" />
+        <Button 
+          variant="outline" 
+          className="w-full justify-start text-gray-700" 
+          onClick={handleLogout}
+        >
+          <LogOut className="h-4 w-4 mr-2" />
+          Sair
+        </Button>
       </div>
     </aside>
   );

@@ -2,244 +2,274 @@ import React from "react";
 import { useQuery } from "@tanstack/react-query";
 import { useAuth } from "@/hooks/use-auth";
 import { StudentLayout } from "@/components/layout/student-layout";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
-import { Calendar, Clock, BookOpen } from "lucide-react";
-import { formatAnoEscolar, formatStatus } from "@/lib/utils";
+import { Calendar, Clock, BookOpen, Bookmark, ArrowRight } from "lucide-react";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
+import { formatStatus } from "@/lib/utils";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { BarChart } from "@/components/graficos/bar-chart";
 
 export default function AulasPage() {
   const { user } = useAuth();
-  const [filter, setFilter] = React.useState("proximas");
-
-  // Buscar aulas do aluno logado
-  const { data: aulasData, isLoading } = useQuery({
-    queryKey: ["/api/aulas/aluno"],
+  const [activeTab, setActiveTab] = React.useState("proximas");
+  
+  // Buscar os dados do aluno
+  const { data: alunoData, isLoading } = useQuery({
+    queryKey: ["/api/alunos/usuario"],
     enabled: !!user?.alunoId
   });
 
-  // Separar aulas por status
+  // Aulas próximas (futuras)
   const proximasAulas = React.useMemo(() => {
-    if (!aulasData) return [];
-    return aulasData
-      .filter((aula: any) => aula.status === "agendada" || aula.status === "confirmada")
-      .sort((a: any, b: any) => new Date(a.data).getTime() - new Date(b.data).getTime());
-  }, [aulasData]);
+    if (!alunoData?.aulas) return [];
+    
+    const dataAtual = new Date();
+    return alunoData.aulas.filter(
+      (aula: any) => new Date(aula.data) >= dataAtual
+    ).sort(
+      (a: any, b: any) => new Date(a.data).getTime() - new Date(b.data).getTime()
+    );
+  }, [alunoData?.aulas]);
 
+  // Aulas passadas
   const aulasPassadas = React.useMemo(() => {
-    if (!aulasData) return [];
-    return aulasData
-      .filter((aula: any) => aula.status === "realizada")
-      .sort((a: any, b: any) => new Date(b.data).getTime() - new Date(a.data).getTime());
-  }, [aulasData]);
+    if (!alunoData?.aulas) return [];
+    
+    const dataAtual = new Date();
+    return alunoData.aulas.filter(
+      (aula: any) => new Date(aula.data) < dataAtual
+    ).sort(
+      (a: any, b: any) => new Date(b.data).getTime() - new Date(a.data).getTime()
+    );
+  }, [alunoData?.aulas]);
 
-  // Estatísticas
-  const totalAulas = React.useMemo(() => aulasData?.length || 0, [aulasData]);
-  const totalHoras = React.useMemo(() => {
-    if (!aulasData) return 0;
-    return aulasData.reduce((acc: number, aula: any) => acc + (aula.duracao || 0), 0);
-  }, [aulasData]);
-
-  // Agrupar aulas por matéria
-  const aulasPorMateria = React.useMemo(() => {
-    if (!aulasData) return {};
-    return aulasData.reduce((acc: any, aula: any) => {
-      const materia = aula.materia?.nome || "Sem matéria";
-      if (!acc[materia]) acc[materia] = { count: 0, horas: 0 };
-      acc[materia].count++;
-      acc[materia].horas += (aula.duracao || 0);
+  // Dados para os gráficos
+  const dadosAulasPorMateria = React.useMemo(() => {
+    if (!alunoData?.aulas || alunoData.aulas.length === 0) return [];
+    
+    // Agrupar aulas por matéria
+    const materias: Record<string, number> = alunoData.aulas.reduce((acc: any, aula: any) => {
+      const nomeMateria = aula.materia?.nome || "Sem matéria";
+      acc[nomeMateria] = (acc[nomeMateria] || 0) + 1;
       return acc;
     }, {});
-  }, [aulasData]);
+    
+    // Converter para o formato do gráfico
+    return Object.keys(materias).map(nome => ({
+      materia: nome,
+      quantidade: materias[nome]
+    })).sort((a, b) => b.quantidade - a.quantidade);
+  }, [alunoData?.aulas]);
 
   return (
     <StudentLayout title="Minhas Aulas">
-      <div className="space-y-6">
+      <div className="space-y-8">
         <div className="flex justify-between items-center">
           <h1 className="text-2xl font-heading font-bold">Minhas Aulas</h1>
-          <Button variant="default">
-            <Calendar className="mr-2 h-4 w-4" /> Solicitar aula
+          <Button variant="outline" onClick={() => window.open("/aluno/horarios", "_self")}>
+            <Calendar className="mr-2 h-4 w-4" />
+            Agendar Aula
           </Button>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          <Card>
-            <CardHeader className="pb-2">
-              <CardTitle className="text-sm font-medium text-gray-500">Total de aulas</CardTitle>
+        {/* Resumo e Gráficos */}
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+          <Card className="col-span-1 md:col-span-2">
+            <CardHeader>
+              <CardTitle>Desempenho por Matéria</CardTitle>
+              <CardDescription>
+                Quantidade de aulas realizadas por matéria
+              </CardDescription>
             </CardHeader>
             <CardContent>
-              <div className="flex items-center">
-                <Calendar className="h-6 w-6 text-primary-600 mr-2" />
-                <span className="text-2xl font-bold">{totalAulas}</span>
-              </div>
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardHeader className="pb-2">
-              <CardTitle className="text-sm font-medium text-gray-500">Horas de estudo</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="flex items-center">
-                <Clock className="h-6 w-6 text-primary-600 mr-2" />
-                <span className="text-2xl font-bold">{totalHoras}h</span>
-              </div>
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardHeader className="pb-2">
-              <CardTitle className="text-sm font-medium text-gray-500">Próxima aula</CardTitle>
-            </CardHeader>
-            <CardContent>
-              {proximasAulas.length > 0 ? (
-                <div className="flex items-center">
-                  <BookOpen className="h-6 w-6 text-primary-600 mr-2" />
-                  <div>
-                    <span className="font-bold">{proximasAulas[0].materia?.nome || "Aula"}</span>
-                    <p className="text-xs text-gray-500">
-                      {format(new Date(proximasAulas[0].data), "dd/MM/yyyy 'às' HH:mm", { locale: ptBR })}
-                    </p>
+              <div className="h-80">
+                {dadosAulasPorMateria.length > 0 ? (
+                  <BarChart 
+                    data={dadosAulasPorMateria}
+                    title=""
+                    xAxisKey="materia"
+                    yAxisKey="quantidade"
+                    height={300}
+                    barName="Aulas"
+                  />
+                ) : (
+                  <div className="flex items-center justify-center h-full text-gray-500">
+                    Sem dados para exibir
                   </div>
+                )}
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader>
+              <CardTitle>Resumo</CardTitle>
+              <CardDescription>
+                Progresso e estatísticas gerais
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-6">
+              <div className="flex justify-between items-center">
+                <div className="space-y-1">
+                  <p className="text-sm font-medium text-gray-500">Total de Aulas</p>
+                  <p className="text-2xl font-bold">{alunoData?.aulas?.length || 0}</p>
                 </div>
-              ) : (
-                <div className="text-sm text-gray-500">Nenhuma aula agendada</div>
-              )}
+                <div className="h-12 w-12 bg-primary-100 rounded-full flex items-center justify-center text-primary-600">
+                  <BookOpen className="h-6 w-6" />
+                </div>
+              </div>
+              
+              <div className="flex justify-between items-center">
+                <div className="space-y-1">
+                  <p className="text-sm font-medium text-gray-500">Próxima Aula</p>
+                  {proximasAulas.length > 0 ? (
+                    <p className="text-sm font-semibold">
+                      {format(new Date(proximasAulas[0].data), "dd/MM • HH:mm")} - {proximasAulas[0].materia?.nome || "Aula"}
+                    </p>
+                  ) : (
+                    <p className="text-sm text-gray-400">Nenhuma aula agendada</p>
+                  )}
+                </div>
+                <div className="h-12 w-12 bg-amber-100 rounded-full flex items-center justify-center text-amber-600">
+                  <Calendar className="h-6 w-6" />
+                </div>
+              </div>
+              
+              <Button 
+                variant="outline" 
+                className="w-full" 
+                onClick={() => window.open("/aluno/horarios", "_self")}
+              >
+                <Calendar className="mr-2 h-4 w-4" />
+                Ver horários disponíveis
+              </Button>
             </CardContent>
           </Card>
         </div>
 
+        {/* Lista de aulas */}
         <Card>
           <CardHeader>
-            <CardTitle>Histórico de Aulas</CardTitle>
-            <Tabs defaultValue="proximas" className="mt-2">
+            <CardTitle>Aulas</CardTitle>
+            <Tabs defaultValue="proximas" value={activeTab} onValueChange={setActiveTab}>
               <TabsList>
-                <TabsTrigger 
-                  value="proximas"
-                  onClick={() => setFilter("proximas")}
-                >
-                  Próximas Aulas
-                </TabsTrigger>
-                <TabsTrigger 
-                  value="passadas"
-                  onClick={() => setFilter("passadas")}
-                >
-                  Aulas Passadas
-                </TabsTrigger>
+                <TabsTrigger value="proximas">Próximas</TabsTrigger>
+                <TabsTrigger value="passadas">Passadas</TabsTrigger>
               </TabsList>
-
-              <TabsContent value="proximas" className="mt-4">
-                {isLoading ? (
-                  <div className="p-6 text-center">Carregando...</div>
-                ) : proximasAulas.length > 0 ? (
-                  <div className="space-y-4">
-                    {proximasAulas.map((aula: any) => (
-                      <div key={aula.id} className="p-4 border rounded-lg bg-white">
-                        <div className="flex items-start justify-between">
-                          <div className="flex gap-3">
-                            <Avatar className="h-10 w-10 bg-primary-100 text-primary-600">
-                              <AvatarFallback>{aula.materia?.nome?.[0] || "A"}</AvatarFallback>
-                            </Avatar>
-                            <div>
-                              <h3 className="font-medium">{aula.materia?.nome || "Aula"}</h3>
-                              <p className="text-sm text-gray-500">
-                                {format(new Date(aula.data), "EEEE, dd 'de' MMMM 'às' HH:mm", { locale: ptBR })}
-                              </p>
-                              <div className="flex gap-2 mt-2">
-                                <Badge variant="outline">{formatStatus(aula.status)}</Badge>
-                                <Badge variant="outline">{aula.duracao}h</Badge>
-                              </div>
-                            </div>
-                          </div>
-                          <div>
-                            <Button variant="ghost" size="sm">
-                              Detalhes
-                            </Button>
-                          </div>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                ) : (
-                  <div className="p-6 text-center text-gray-500">
-                    Você não tem aulas agendadas no momento.
-                  </div>
-                )}
-              </TabsContent>
-
-              <TabsContent value="passadas" className="mt-4">
-                {isLoading ? (
-                  <div className="p-6 text-center">Carregando...</div>
-                ) : aulasPassadas.length > 0 ? (
-                  <div className="space-y-4">
-                    {aulasPassadas.map((aula: any) => (
-                      <div key={aula.id} className="p-4 border rounded-lg bg-white">
-                        <div className="flex items-start justify-between">
-                          <div className="flex gap-3">
-                            <Avatar className="h-10 w-10 bg-primary-100 text-primary-600">
-                              <AvatarFallback>{aula.materia?.nome?.[0] || "A"}</AvatarFallback>
-                            </Avatar>
-                            <div>
-                              <h3 className="font-medium">{aula.materia?.nome || "Aula"}</h3>
-                              <p className="text-sm text-gray-500">
-                                {format(new Date(aula.data), "EEEE, dd 'de' MMMM 'às' HH:mm", { locale: ptBR })}
-                              </p>
-                              <div className="flex gap-2 mt-2">
-                                <Badge variant="outline">{formatStatus(aula.status)}</Badge>
-                                <Badge variant="outline">{aula.duracao}h</Badge>
-                              </div>
-                              {aula.conteudo && (
-                                <p className="mt-2 text-sm">
-                                  <span className="font-medium">Conteúdo:</span> {aula.conteudo}
-                                </p>
-                              )}
-                            </div>
-                          </div>
-                          <div>
-                            <Button variant="ghost" size="sm">
-                              Detalhes
-                            </Button>
-                          </div>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                ) : (
-                  <div className="p-6 text-center text-gray-500">
-                    Você ainda não teve nenhuma aula realizada.
-                  </div>
-                )}
-              </TabsContent>
             </Tabs>
           </CardHeader>
-        </Card>
-
-        <Card>
-          <CardHeader>
-            <CardTitle>Matérias Estudadas</CardTitle>
-          </CardHeader>
           <CardContent>
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-              {Object.entries(aulasPorMateria).map(([materia, stats]: [string, any]) => (
-                <div key={materia} className="p-4 border rounded-lg bg-white">
-                  <h3 className="font-medium">{materia}</h3>
-                  <div className="mt-2 grid grid-cols-2 gap-2">
-                    <div>
-                      <p className="text-sm text-gray-500">Aulas</p>
-                      <p className="font-bold">{stats.count}</p>
-                    </div>
-                    <div>
-                      <p className="text-sm text-gray-500">Horas</p>
-                      <p className="font-bold">{stats.horas}h</p>
-                    </div>
+            <TabsContent value="proximas" className="mt-0">
+              {isLoading ? (
+                <div className="py-4 text-center">Carregando aulas...</div>
+              ) : proximasAulas.length > 0 ? (
+                <div className="space-y-4">
+                  {proximasAulas.map((aula: any) => (
+                    <Card key={aula.id} className="overflow-hidden">
+                      <div className="border-l-4 border-primary-500 pl-4 p-4">
+                        <div className="flex justify-between items-start">
+                          <div>
+                            <div className="flex items-center">
+                              <Badge className="mr-2">{aula.materia?.nome || "Aula"}</Badge>
+                              <Badge variant="outline">{formatStatus(aula.status)}</Badge>
+                            </div>
+                            <h3 className="font-semibold mt-2">
+                              {format(new Date(aula.data), "EEEE, dd 'de' MMMM 'de' yyyy", { locale: ptBR })}
+                            </h3>
+                            <div className="flex items-center text-gray-500 mt-1">
+                              <Clock className="h-4 w-4 mr-1" />
+                              <span>
+                                {format(new Date(aula.data), "HH:mm")} - {aula.duracao}h
+                              </span>
+                            </div>
+                            {aula.conteudo && (
+                              <p className="mt-2 text-gray-600">
+                                <span className="font-medium">Conteúdo:</span> {aula.conteudo}
+                              </p>
+                            )}
+                          </div>
+                          <Button variant="ghost" size="sm">
+                            <ArrowRight className="h-4 w-4" />
+                          </Button>
+                        </div>
+                      </div>
+                    </Card>
+                  ))}
+                </div>
+              ) : (
+                <div className="py-6 text-center text-gray-500">
+                  <div className="flex flex-col items-center justify-center py-8">
+                    <Calendar className="h-12 w-12 text-gray-300 mb-4" />
+                    <p>Você não tem aulas agendadas</p>
+                    <Button 
+                      variant="link" 
+                      className="mt-2" 
+                      onClick={() => window.open("/aluno/horarios", "_self")}
+                    >
+                      Agendar uma aula agora
+                    </Button>
                   </div>
                 </div>
-              ))}
-            </div>
+              )}
+            </TabsContent>
+
+            <TabsContent value="passadas" className="mt-0">
+              {isLoading ? (
+                <div className="py-4 text-center">Carregando aulas...</div>
+              ) : aulasPassadas.length > 0 ? (
+                <div className="space-y-4">
+                  {aulasPassadas.map((aula: any) => (
+                    <Card key={aula.id} className="overflow-hidden">
+                      <div className="border-l-4 border-gray-400 pl-4 p-4">
+                        <div className="flex justify-between items-start">
+                          <div>
+                            <div className="flex items-center">
+                              <Badge variant="secondary" className="mr-2">{aula.materia?.nome || "Aula"}</Badge>
+                              <Badge variant="outline">{formatStatus(aula.status)}</Badge>
+                            </div>
+                            <h3 className="font-semibold mt-2">
+                              {format(new Date(aula.data), "EEEE, dd 'de' MMMM 'de' yyyy", { locale: ptBR })}
+                            </h3>
+                            <div className="flex items-center text-gray-500 mt-1">
+                              <Clock className="h-4 w-4 mr-1" />
+                              <span>
+                                {format(new Date(aula.data), "HH:mm")} - {aula.duracao}h
+                              </span>
+                            </div>
+                            {aula.conteudo && (
+                              <p className="mt-2 text-gray-600">
+                                <span className="font-medium">Conteúdo:</span> {aula.conteudo}
+                              </p>
+                            )}
+                          </div>
+                          <Button variant="ghost" size="sm">
+                            <ArrowRight className="h-4 w-4" />
+                          </Button>
+                        </div>
+                      </div>
+                    </Card>
+                  ))}
+                </div>
+              ) : (
+                <div className="py-6 text-center text-gray-500">
+                  <div className="flex flex-col items-center justify-center py-8">
+                    <BookOpen className="h-12 w-12 text-gray-300 mb-4" />
+                    <p>Você ainda não teve nenhuma aula</p>
+                    <Button 
+                      variant="link" 
+                      className="mt-2" 
+                      onClick={() => window.open("/aluno/horarios", "_self")}
+                    >
+                      Agendar sua primeira aula
+                    </Button>
+                  </div>
+                </div>
+              )}
+            </TabsContent>
           </CardContent>
         </Card>
       </div>
