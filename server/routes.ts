@@ -16,7 +16,9 @@ import {
   insertMateriaSchema, 
   insertTemaSchema, 
   insertAulaSchema, 
-  insertHorarioDisponivelSchema 
+  insertHorarioDisponivelSchema,
+  users,
+  insertUserSchema
 } from "@shared/schema";
 import { db } from "@db";
 import { format, startOfDay, endOfDay, startOfWeek, endOfWeek, startOfMonth, endOfMonth, isValid } from "date-fns";
@@ -558,6 +560,171 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Rotas para gerenciar usuários (somente para administradores)
+  app.get(`${apiPrefix}/usuarios`, async (req, res) => {
+    try {
+      // Verificar se o usuário atual é administrador
+      if (!req.isAuthenticated() || req.user.username !== "STCaio") {
+        return res.status(403).json({ error: "Acesso não autorizado" });
+      }
+      
+      // Buscar todos os usuários
+      const usuarios = await db.select().from(users);
+      
+      // Remover a senha dos dados retornados por segurança
+      const usuariosSemSenha = usuarios.map(({ password, ...resto }) => resto);
+      
+      return res.json(usuariosSemSenha);
+    } catch (error) {
+      console.error("Erro ao buscar usuários:", error);
+      return res.status(500).json({ error: "Erro interno do servidor" });
+    }
+  });
+  
+  app.post(`${apiPrefix}/usuarios`, async (req, res) => {
+    try {
+      // Verificar se o usuário atual é administrador
+      if (!req.isAuthenticated() || req.user.username !== "STCaio") {
+        return res.status(403).json({ error: "Acesso não autorizado" });
+      }
+      
+      // Validar os dados
+      const validatedData = insertUserSchema.parse(req.body);
+      
+      // Verificar se o nome de usuário já existe
+      const userExists = await db.select()
+        .from(users)
+        .where(eq(users.username, validatedData.username))
+        .limit(1);
+      
+      if (userExists.length > 0) {
+        return res.status(400).json({ error: "Nome de usuário já existe" });
+      }
+      
+      // Gerar hash da senha
+      const hashedPassword = await storage.hashPassword(validatedData.password);
+      
+      // Criar o usuário
+      const [newUser] = await db.insert(users)
+        .values({
+          ...validatedData,
+          password: hashedPassword
+        })
+        .returning();
+        
+      // Remover a senha dos dados retornados
+      const { password, ...userWithoutPassword } = newUser;
+      
+      return res.status(201).json(userWithoutPassword);
+    } catch (error) {
+      if (error instanceof z.ZodError) {
+        return res.status(400).json({ errors: error.errors });
+      }
+      console.error("Erro ao criar usuário:", error);
+      return res.status(500).json({ error: "Erro interno do servidor" });
+    }
+  });
+  
+  app.put(`${apiPrefix}/usuarios/:id`, async (req, res) => {
+    try {
+      // Verificar se o usuário atual é administrador
+      if (!req.isAuthenticated() || req.user.username !== "STCaio") {
+        return res.status(403).json({ error: "Acesso não autorizado" });
+      }
+      
+      const { id } = req.params;
+      
+      // Validar os dados
+      const validatedData = insertUserSchema.parse(req.body);
+      
+      // Verificar se o usuário existe
+      const userExists = await db.select()
+        .from(users)
+        .where(eq(users.id, parseInt(id)))
+        .limit(1);
+      
+      if (userExists.length === 0) {
+        return res.status(404).json({ error: "Usuário não encontrado" });
+      }
+      
+      // Verificar se o novo nome de usuário já existe (se for diferente do atual)
+      if (validatedData.username !== userExists[0].username) {
+        const usernameExists = await db.select()
+          .from(users)
+          .where(eq(users.username, validatedData.username))
+          .limit(1);
+          
+        if (usernameExists.length > 0) {
+          return res.status(400).json({ error: "Nome de usuário já existe" });
+        }
+      }
+      
+      // Prepara os dados para atualização
+      let dataToUpdate: any = {
+        ...validatedData
+      };
+      
+      // Se a senha foi fornecida, gerar novo hash
+      if (validatedData.password) {
+        dataToUpdate.password = await storage.hashPassword(validatedData.password);
+      } else {
+        // Se não foi fornecida senha, remover do objeto para não atualizar
+        delete dataToUpdate.password;
+      }
+      
+      // Atualizar o usuário
+      const [updatedUser] = await db.update(users)
+        .set(dataToUpdate)
+        .where(eq(users.id, parseInt(id)))
+        .returning();
+        
+      // Remover a senha dos dados retornados
+      const { password, ...userWithoutPassword } = updatedUser;
+      
+      return res.json(userWithoutPassword);
+    } catch (error) {
+      if (error instanceof z.ZodError) {
+        return res.status(400).json({ errors: error.errors });
+      }
+      console.error("Erro ao atualizar usuário:", error);
+      return res.status(500).json({ error: "Erro interno do servidor" });
+    }
+  });
+  
+  app.delete(`${apiPrefix}/usuarios/:id`, async (req, res) => {
+    try {
+      // Verificar se o usuário atual é administrador
+      if (!req.isAuthenticated() || req.user.username !== "STCaio") {
+        return res.status(403).json({ error: "Acesso não autorizado" });
+      }
+      
+      const { id } = req.params;
+      
+      // Verificar se o usuário existe
+      const userExists = await db.select()
+        .from(users)
+        .where(eq(users.id, parseInt(id)))
+        .limit(1);
+      
+      if (userExists.length === 0) {
+        return res.status(404).json({ error: "Usuário não encontrado" });
+      }
+      
+      // Não permitir excluir o usuário administrador STCaio
+      if (userExists[0].username === "STCaio") {
+        return res.status(403).json({ error: "Não é permitido excluir o usuário administrador principal" });
+      }
+      
+      // Excluir o usuário
+      await db.delete(users).where(eq(users.id, parseInt(id)));
+      
+      return res.status(204).end();
+    } catch (error) {
+      console.error("Erro ao excluir usuário:", error);
+      return res.status(500).json({ error: "Erro interno do servidor" });
+    }
+  });
+  
   // Criar servidor HTTP
   const httpServer = createServer(app);
 

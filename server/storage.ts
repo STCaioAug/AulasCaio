@@ -5,18 +5,22 @@ import session from "express-session";
 import connectPg from "connect-pg-simple";
 import { pool } from "@db";
 import { InsertUser, User } from "@shared/schema";
+import { scrypt, randomBytes } from "crypto";
+import { promisify } from "util";
 
 const PostgresSessionStore = connectPg(session);
+const scryptAsync = promisify(scrypt);
 
 export interface IStorage {
   getUser(id: number): Promise<User | undefined>;
   getUserByUsername(username: string): Promise<User | undefined>;
   createUser(user: InsertUser): Promise<User>;
-  sessionStore: session.SessionStore;
+  hashPassword(password: string): Promise<string>;
+  sessionStore: any; // Session store
 }
 
 export class DatabaseStorage implements IStorage {
-  sessionStore: session.SessionStore;
+  sessionStore: any; // Session store
 
   constructor() {
     this.sessionStore = new PostgresSessionStore({ 
@@ -47,6 +51,12 @@ export class DatabaseStorage implements IStorage {
       .values(userData)
       .returning();
     return user;
+  }
+  
+  async hashPassword(password: string): Promise<string> {
+    const salt = randomBytes(16).toString("hex");
+    const buf = (await scryptAsync(password, salt, 64)) as Buffer;
+    return `${buf.toString("hex")}.${salt}`;
   }
 }
 
