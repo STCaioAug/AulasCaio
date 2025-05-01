@@ -17,7 +17,12 @@ import {
   MessageSquare,
   PenSquare,
   Trash2,
-  CheckCircle
+  CheckCircle,
+  User,
+  Key,
+  Shield,
+  Copy,
+  RefreshCw
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import {
@@ -95,6 +100,256 @@ const StatusBadge = ({ status }: { status: string }) => {
     </span>
   );
 };
+
+// Componente para buscar e exibir informações do usuário associado ao aluno
+function FetchUserData({ alunoId }: { alunoId: string }) {
+  const { toast } = useToast();
+  const [resetPasswordDialogOpen, setResetPasswordDialogOpen] = useState(false);
+  const [newPassword, setNewPassword] = useState("");
+  
+  // Buscar usuário pelo ID do aluno
+  const { data: userData, isLoading: isLoadingUser, error: userError } = useQuery({
+    queryKey: [`/api/users/by-aluno/${alunoId}`],
+  });
+  
+  // Mutação para redefinir senha
+  const resetPasswordMutation = useMutation({
+    mutationFn: async (data: { userId: number, newPassword: string }) => {
+      const res = await apiRequest("PUT", `/api/users/${data.userId}/reset-password`, { 
+        password: data.newPassword
+      });
+      return res.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: [`/api/users/by-aluno/${alunoId}`] });
+      toast({
+        title: "Senha redefinida",
+        description: "A senha foi redefinida com sucesso."
+      });
+      setResetPasswordDialogOpen(false);
+    },
+    onError: (error) => {
+      toast({
+        title: "Erro",
+        description: "Não foi possível redefinir a senha: " + error.message,
+        variant: "destructive"
+      });
+    }
+  });
+  
+  // Gerar nova senha para usuário
+  const gerarSenha = () => {
+    if (!userData?.usuario) return;
+    
+    // Gerar senha padrão (primeiras 3 letras do nome + ano escolar + "2025")
+    let namePart = userData.nome.substring(0, 3).toLowerCase();
+    const novaSenha = namePart + userData.anoEscolar.replace('_', '') + "2025";
+    setNewPassword(novaSenha);
+    
+    // Abrir diálogo de confirmação
+    setResetPasswordDialogOpen(true);
+  };
+  
+  // Função para copiar para o clipboard
+  const copiarParaClipboard = (texto: string) => {
+    navigator.clipboard.writeText(texto)
+      .then(() => {
+        toast({
+          title: "Copiado!",
+          description: "Informação copiada para a área de transferência"
+        });
+      })
+      .catch(err => {
+        toast({
+          title: "Erro",
+          description: "Não foi possível copiar o texto: " + err.message,
+          variant: "destructive"
+        });
+      });
+  };
+  
+  if (isLoadingUser) {
+    return (
+      <div className="flex items-center justify-center py-8">
+        <div className="animate-spin h-6 w-6 border-2 border-primary border-t-transparent rounded-full"></div>
+      </div>
+    );
+  }
+  
+  if (userError) {
+    return (
+      <div className="text-center py-6">
+        <p className="text-sm text-red-500">Erro ao buscar informações do usuário.</p>
+      </div>
+    );
+  }
+  
+  if (!userData?.usuario) {
+    return (
+      <div className="text-center py-6">
+        <p className="text-sm text-gray-500">Este aluno não possui uma conta de usuário associada.</p>
+        <Button 
+          variant="outline" 
+          size="sm" 
+          className="mt-4"
+          onClick={() => {
+            toast({
+              title: "Funcionalidade em desenvolvimento",
+              description: "A criação manual de usuários estará disponível em breve."
+            });
+          }}
+        >
+          <User className="h-4 w-4 mr-1" /> Criar conta de usuário
+        </Button>
+      </div>
+    );
+  }
+  
+  const usuario = userData.usuario;
+  
+  return (
+    <>
+      <div className="space-y-6">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <div className="space-y-4">
+            <div>
+              <h3 className="text-sm font-medium text-gray-500">Dados da conta</h3>
+              <div className="mt-2 space-y-3">
+                <div className="flex justify-between items-center p-3 rounded-md border bg-gray-50">
+                  <div>
+                    <p className="text-xs text-gray-500">Nome de usuário</p>
+                    <p className="font-medium">{usuario.username}</p>
+                  </div>
+                  <Button 
+                    variant="ghost" 
+                    size="sm" 
+                    onClick={() => copiarParaClipboard(usuario.username)}
+                  >
+                    <Copy className="h-4 w-4" />
+                  </Button>
+                </div>
+                
+                <div className="flex justify-between items-center p-3 rounded-md border bg-gray-50">
+                  <div>
+                    <p className="text-xs text-gray-500">E-mail</p>
+                    <p className="font-medium">{usuario.email || "Não cadastrado"}</p>
+                  </div>
+                  {usuario.email && (
+                    <Button 
+                      variant="ghost" 
+                      size="sm" 
+                      onClick={() => copiarParaClipboard(usuario.email)}
+                    >
+                      <Copy className="h-4 w-4" />
+                    </Button>
+                  )}
+                </div>
+              </div>
+            </div>
+            
+            <div>
+              <h3 className="text-sm font-medium text-gray-500">Tipo de acesso</h3>
+              <div className="mt-2">
+                <div className="p-3 rounded-md border bg-gray-50">
+                  <div className="flex items-center">
+                    <Shield className={`h-5 w-5 ${usuario.isAdmin ? "text-purple-500" : "text-green-500"} mr-2`} />
+                    <p className="font-medium">{usuario.isAdmin ? "Administrador" : "Aluno"}</p>
+                  </div>
+                  <p className="text-xs text-gray-500 mt-1">
+                    {usuario.isAdmin 
+                      ? "Possui acesso total ao sistema, incluindo todas as funções administrativas." 
+                      : "Possui acesso limitado ao sistema, com foco nas funções de aluno."}
+                  </p>
+                </div>
+              </div>
+            </div>
+          </div>
+          
+          <div className="space-y-4">
+            <div>
+              <h3 className="text-sm font-medium text-gray-500">Gerenciamento de senha</h3>
+              <div className="mt-2 space-y-3">
+                <div className="p-3 rounded-md border bg-gray-50">
+                  <p className="text-sm">Redefinir senha do usuário</p>
+                  <p className="text-xs text-gray-500 mt-1 mb-3">
+                    Gere uma nova senha para este usuário. Uma senha padrão será criada usando o padrão: 
+                    <span className="font-mono bg-gray-200 px-1 rounded">xxx + anoescolar + 2025</span>
+                  </p>
+                  <Button 
+                    variant="outline" 
+                    size="sm" 
+                    onClick={gerarSenha}
+                    className="w-full"
+                  >
+                    <Key className="h-4 w-4 mr-1" /> Gerar nova senha
+                  </Button>
+                </div>
+                
+                <div className="p-3 rounded-md border bg-gray-50">
+                  <p className="text-sm">Status da conta</p>
+                  <div className="flex items-center mt-2">
+                    <div className="h-3 w-3 rounded-full bg-green-500 mr-2"></div>
+                    <p className="text-sm">Ativa</p>
+                  </div>
+                </div>
+              </div>
+            </div>
+            
+            <div>
+              <h3 className="text-sm font-medium text-gray-500">Último acesso</h3>
+              <div className="mt-2">
+                <div className="p-3 rounded-md border bg-gray-50">
+                  <p className="text-sm">{usuario.lastLogin ? format(new Date(usuario.lastLogin), "dd/MM/yyyy 'às' HH:mm", { locale: ptBR }) : "Nunca acessou"}</p>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+      
+      {/* Dialog para redefinir senha */}
+      <Dialog open={resetPasswordDialogOpen} onOpenChange={setResetPasswordDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Redefinir senha</DialogTitle>
+            <DialogDescription>
+              Você está prestes a redefinir a senha do usuário <span className="font-medium">{usuario.username}</span>.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            <div className="space-y-2">
+              <p className="text-sm font-medium">Nova senha:</p>
+              <div className="flex items-center justify-between p-2 bg-gray-100 rounded border">
+                <code className="text-sm">{newPassword}</code>
+                <Button 
+                  variant="ghost" 
+                  size="sm" 
+                  onClick={() => copiarParaClipboard(newPassword)}
+                >
+                  <Copy className="h-4 w-4" />
+                </Button>
+              </div>
+              <p className="text-xs text-gray-500 mt-1">
+                Anote esta senha pois ela não será exibida novamente após a confirmação.
+              </p>
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setResetPasswordDialogOpen(false)}>
+              Cancelar
+            </Button>
+            <Button 
+              onClick={() => resetPasswordMutation.mutate({ userId: usuario.id, newPassword })}
+              disabled={resetPasswordMutation.isPending}
+            >
+              {resetPasswordMutation.isPending ? "Redefinindo..." : "Confirmar redefinição"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+    </>
+  );
+}
 
 export function AlunoDetails({ alunoId }: AlunoDetailsProps) {
   const { toast } = useToast();
@@ -318,6 +573,7 @@ export function AlunoDetails({ alunoId }: AlunoDetailsProps) {
             <TabsTrigger value="aulas" className="flex-1">Aulas</TabsTrigger>
             <TabsTrigger value="temas" className="flex-1">Temas</TabsTrigger>
             <TabsTrigger value="relatorios" className="flex-1">Relatórios</TabsTrigger>
+            <TabsTrigger value="usuario" className="flex-1">Usuário</TabsTrigger>
           </TabsList>
           
           {/* Conteúdo da aba Aulas */}
@@ -576,6 +832,19 @@ export function AlunoDetails({ alunoId }: AlunoDetailsProps) {
                     </p>
                   </div>
                 </div>
+              </CardContent>
+            </Card>
+          </TabsContent>
+          
+          {/* Conteúdo da aba Usuário */}
+          <TabsContent value="usuario" className="pt-4">
+            <Card>
+              <CardHeader>
+                <CardTitle className="text-lg">Informações de Acesso</CardTitle>
+              </CardHeader>
+              <CardContent>
+                {/* Buscar dados do usuário */}
+                <FetchUserData alunoId={alunoId} />
               </CardContent>
             </Card>
           </TabsContent>
