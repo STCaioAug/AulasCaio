@@ -1,0 +1,253 @@
+ESTRUTURA DE ABAS
+
+1. DASHBOARD (Página inicial)
+
+Indicadores em cards com filtros por dia, semana, mês:
+
+Aulas confirmadas
+
+Acumulado do mês (em R$)
+
+Aulas agendadas vs. aulas dadas
+
+Horas trabalhadas
+
+Horas livres por dia
+
+Gráficos:
+
+Barras: horas livres por dia da semana (com filtro semana/mês)
+
+Barras: horas trabalhadas por dia (com filtro semana/mês)
+
+Colunas ou pizza: aulas agendadas vs aulas dadas no mês
+
+Lista visual com horários vagos na semana e no mês (dinâmica e fácil de consultar no celular)
+
+Todos os cards devem ser clicáveis e redirecionar para suas respectivas abas
+
+2. ALUNOS
+
+Lista de alunos com botão para acessar página individual
+
+Página individual deve permitir:
+
+Editar informações
+
+Cadastrar ano escolar
+
+Listar matérias já estudadas (tabela)
+
+Listar matérias a estudar (tabela)
+
+Sugestões automáticas de temas por série e matéria (com checkbox)
+
+Classificação por tema (fácil, médio, difícil)
+
+Gráfico de barras com as matérias estudadas, com filtro por período (semana, mês, trimestre)
+
+Botão para gerar relatório individual do aluno com exportação em:
+
+PDF
+
+PNG (formato 1080x1920)
+
+Texto pronto para WhatsApp
+
+3. RESPONSÁVEIS
+
+Campos:
+
+Nome
+
+Telefone
+
+WhatsApp (ao digitar apenas o número, gerar automaticamente link https://wa.me/)
+
+Campo "Responsável por" com múltipla seleção dos alunos filhos
+
+Dados já mapeados para alimentar a tabela Guardians:
+
+Pares Aluno ↔ Responsável
+
+Maria → Giovanela
+
+João → Mariana Ferraz
+
+Pedro → Daniella Risola
+
+Lourenço → Maysa Inada O Ducatti
+
+Gabi Selêncio → Silvia Celêncio
+
+Otávio → Gisele
+
+Pietro → Marcela Archilia
+
+Carol → Daniella Risola
+
+Gui/Pedrão → Karin / Leandro
+
+Antônio → Giovanela
+
+Fê → Giovanela
+
+Betina → Mariana Ferraz
+
+Filha de Elisane → Elisane
+
+📋 Dados completos dos responsáveis (atualizado)
+
+Nome
+
+Telefone
+
+WhatsApp Link
+
+Responsável por
+
+Daniella Risola
+
++55 19 98224-4747
+
+https://wa.me/5519982244747
+
+Pedro, Carol
+
+Giovanela
+
++55 19 98186-7873
+
+https://wa.me/5519981867873
+
+Maria, Antônio, Fê
+
+Karin
+
++55 11 97626-9474
+
+https://wa.me/5511976269474
+
+Gui/Pedrão
+
+Leandro
+
++55 11 97679-6336
+
+https://wa.me/5511976796336
+
+Gui/Pedrão
+
+Gisele
+
++55 19 99928-4241
+
+https://wa.me/5519999284241
+
+Otávio
+
+Silvia Celêncio
+
++55 19 99602-8813
+
+https://wa.me/5519996028813
+
+Gabi Selêncio
+
+Maysa Inada O Ducatti
+
++55 19 99891-6701
+
+https://wa.me/5519998916701
+
+Lourenço
+
+Marcela Archilia
+
++55 19 98911-3534
+
+https://wa.me/5519989113534
+
+Pietro
+
+Elisane
+
++55 19 98181-6080
+
+https://wa.me/5519981816080
+
+Filha de Elisane
+
+Mariana Ferraz
+
++55 19 99130-8899
+
+https://wa.me/5519991308899
+
+João, Betina
+
+4. CALENDÁRIO
+
+Visão clara e dinâmica com cores diferentes para:
+
+Aulas agendadas
+
+Aulas confirmadas
+
+Possibilidade de editar ou cancelar aulas diretamente ao clicar
+
+
+
+5.GRÁFICOS 
+
+Gráfico de barras com a quantidade de horas livres por dia da semana.Objetivo: visualizar a distribuição da sua disponibilidade ao longo dos dias.
+
+Filtro: semana, mês.
+
+Gráfico comparativo (colunas ou pizza) de:
+
+Aulas agendadas vs. aulas já dadas no mês.
+
+ Gráfico de barras da quantidade de horas trabalhadas por dia.
+
+Objetivo: entender a carga de trabalho real por dia.
+
+Filtro: semana, mês.
+
+Indicadores filtráveis (cards):
+
+Total de aulas confirmadas
+
+Total de horas trabalhadas
+
+Acumulado do mês (em R$)
+
+Todas essas com filtros por dia, semana, mês.
+
+Lista visual com horários vagos da semana e do mês.
+
+
+
+Deve ser dinâmica e fácil de consultar no celular.6. RELATÓRIOS
+
+Botões para gerar relatórios com exportação em PDF, PNG e texto:
+
+Relatório individual do aluno (aulas passadas, conteúdos, próximas aulas)
+
+Relatório de horários disponíveis para o responsável:
+
+Horários livres nas próximas semanas
+
+Horários já reservados
+
+Relatório financeiro por período e por aluno
+
+✅ OUTROS REQUISITOS FUNCIONAIS
+
+Integração com planilha Excel (botão de exportação ou API)
+
+Botões simples para editar/cancelar aulas
+
+Mobile first: layout e interações priorizam a experiência em smartphones
+
+Dashboard com KPI’s filtráveis, gráficos e navegação fluida
