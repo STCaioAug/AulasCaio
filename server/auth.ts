@@ -5,7 +5,9 @@ import session from "express-session";
 import { scrypt, randomBytes, timingSafeEqual } from "crypto";
 import { promisify } from "util";
 import { storage } from "./storage";
-import { User as SelectUser } from "@shared/schema";
+import { User as SelectUser, alunos, users } from "@shared/schema";
+import { db } from "@db";
+import { eq } from "drizzle-orm";
 
 declare global {
   namespace Express {
@@ -62,20 +64,58 @@ export function setupAuth(app: Express) {
   });
 
   app.post("/api/register", async (req, res, next) => {
-    const existingUser = await storage.getUserByUsername(req.body.username);
-    if (existingUser) {
-      return res.status(400).send("Nome de usuário já existe");
+    try {
+      // Verificar se o nome de usuário já existe
+      const existingUser = await storage.getUserByUsername(req.body.username);
+      if (existingUser) {
+        return res.status(400).json({ error: "Nome de usuário já existe" });
+      }
+
+      // Se foi passado um alunoId, verificar se ele existe e se já possui um usuário associado
+      let alunoExistente = null;
+      if (req.body.alunoId) {
+        // Verificar se o aluno existe
+        const aluno = await db.query.alunos.findFirst({
+          where: eq(alunos.id, parseInt(req.body.alunoId))
+        });
+        if (!aluno) {
+          return res.status(404).json({ error: "Aluno não encontrado" });
+        }
+
+        // Verificar se o aluno já possui um usuário associado
+        const usuarioExistente = await db.query.users.findFirst({
+          where: eq(users.alunoId, parseInt(req.body.alunoId))
+        });
+        if (usuarioExistente) {
+          return res.status(400).json({ error: "Este aluno já possui um usuário associado" });
+        }
+
+        alunoExistente = aluno;
+      }
+
+      // Criar o novo usuário com a senha hash
+      const userData = {
+        ...req.body,
+        password: await hashPassword(req.body.password),
+        isAdmin: false, // Por padrão, novos usuários não são administradores
+        lastLogin: new Date() // Definir a data de criação como último login
+      };
+
+      // Criar o usuário no banco de dados
+      const user = await storage.createUser(userData);
+
+      // Fazer login automático com o novo usuário
+      req.login(user, (err) => {
+        if (err) return next(err);
+        
+        // Remover a senha antes de retornar
+        const { password, ...userSemSenha } = user;
+        res.status(201).json(userSemSenha);
+      });
+    } catch (error) {
+      console.error("Erro ao registrar usuário:", error);
+      res.status(500).json({ error: "Erro interno do servidor" });
     }
-
-    const user = await storage.createUser({
-      ...req.body,
-      password: await hashPassword(req.body.password),
-    });
-
-    req.login(user, (err) => {
-      if (err) return next(err);
-      res.status(201).json(user);
-    });
   });
 
   app.post("/api/login", passport.authenticate("local"), (req, res) => {

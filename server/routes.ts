@@ -848,6 +848,45 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
   
+  // Rota para buscar usuário por ID de aluno
+  app.get(`${apiPrefix}/users/by-aluno/:alunoId`, async (req, res) => {
+    try {
+      const { alunoId } = req.params;
+
+      // Verificar se o aluno existe
+      const aluno = await db.query.alunos.findFirst({
+        where: eq(alunos.id, parseInt(alunoId))
+      });
+
+      if (!aluno) {
+        return res.status(404).json({ error: "Aluno não encontrado" });
+      }
+
+      // Buscar usuário pelo ID de aluno
+      const usuario = await db.query.users.findFirst({
+        where: eq(users.alunoId, parseInt(alunoId))
+      });
+
+      if (!usuario) {
+        // Retornar apenas os dados do aluno se não houver usuário vinculado
+        return res.json(aluno);
+      }
+
+      // Remover a senha antes de retornar
+      const { password, ...usuarioSemSenha } = usuario;
+
+      // Retornar aluno com usuário associado
+      return res.json({
+        ...aluno,
+        usuario: usuarioSemSenha
+      });
+
+    } catch (error) {
+      console.error("Erro ao buscar usuário por ID de aluno:", error);
+      return res.status(500).json({ error: "Erro interno do servidor" });
+    }
+  });
+
   // Criar servidor HTTP
   const httpServer = createServer(app);
 
