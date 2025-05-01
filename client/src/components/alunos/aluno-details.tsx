@@ -22,7 +22,8 @@ import {
   Key,
   Shield,
   Copy,
-  RefreshCw
+  RefreshCw,
+  Image
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import {
@@ -767,9 +768,9 @@ export function AlunoDetails({ alunoId }: AlunoDetailsProps) {
                       variant="outline" 
                       className="flex items-center justify-center h-16"
                       onClick={() => {
-                        toast({
-                          title: "Exportando PDF",
-                          description: "Esta funcionalidade estará disponível em breve"
+                        // Importamos e usamos a função de exportação para PDF
+                        import('@/components/relatorios/pdf-export').then(module => {
+                          module.exportToPDF('aluno', alunoId);
                         });
                       }}
                     >
@@ -783,15 +784,15 @@ export function AlunoDetails({ alunoId }: AlunoDetailsProps) {
                       variant="outline" 
                       className="flex items-center justify-center h-16"
                       onClick={() => {
-                        toast({
-                          title: "Gerando impressão",
-                          description: "Esta funcionalidade estará disponível em breve"
+                        // Importamos e usamos a função de exportação para PNG
+                        import('@/components/relatorios/pdf-export').then(module => {
+                          module.exportToPNG('aluno', alunoId);
                         });
                       }}
                     >
                       <div className="flex flex-col items-center">
-                        <Printer className="h-5 w-5 mb-1" />
-                        <span className="text-sm">Imprimir</span>
+                        <FileText className="h-5 w-5 mb-1" />
+                        <span className="text-sm">Gerar Relatório.png</span>
                       </div>
                     </Button>
                     
