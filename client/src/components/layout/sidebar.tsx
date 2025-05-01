@@ -98,6 +98,14 @@ export function Sidebar() {
           label="Relatórios" 
           active={location.startsWith('/relatorios')} 
         />
+        {user?.username === "STCaio" && (
+          <NavItem 
+            href="/usuarios" 
+            icon={<Users size={18} />} 
+            label="Usuários" 
+            active={location.startsWith('/usuarios')} 
+          />
+        )}
       </nav>
       
       <div className="p-4 border-t">

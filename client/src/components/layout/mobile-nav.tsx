@@ -54,6 +54,7 @@ export function MobileNav() {
   const moreItems = [
     { href: "/responsaveis", icon: <Users size={18} />, label: "Responsáveis" },
     { href: "/relatorios", icon: <FileText size={18} />, label: "Relatórios" },
+    ...(user?.username === "STCaio" ? [{ href: "/usuarios", icon: <Users size={18} />, label: "Usuários" }] : []),
   ];
 
   return (

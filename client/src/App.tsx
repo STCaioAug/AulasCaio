@@ -11,6 +11,7 @@ import ResponsaveisPage from "@/pages/responsaveis-page";
 import CalendarioPage from "@/pages/calendario-page";
 import GraficosPage from "@/pages/graficos-page";
 import RelatoriosPage from "@/pages/relatorios-page";
+import UsuariosPage from "@/pages/usuarios-page";
 import { ProtectedRoute } from "./lib/protected-route";
 
 function Router() {
@@ -24,6 +25,7 @@ function Router() {
       <ProtectedRoute path="/calendario" component={CalendarioPage} />
       <ProtectedRoute path="/graficos" component={GraficosPage} />
       <ProtectedRoute path="/relatorios" component={RelatoriosPage} />
+      <ProtectedRoute path="/usuarios" component={UsuariosPage} />
       <Route component={NotFound} />
     </Switch>
   );
