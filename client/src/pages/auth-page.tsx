@@ -80,9 +80,9 @@ export default function AuthPage() {
       <div className="flex-1 flex items-center justify-center px-4 py-12 sm:px-6 lg:px-8">
         <div className="w-full max-w-md space-y-8">
           <div className="text-center">
-            <h1 className="mt-6 text-3xl font-bold tracking-tight text-gray-900 font-heading">
-              Eleve Estudos
-            </h1>
+            <div className="flex justify-center">
+              <img src="/images/logo.png" alt="Eleve Estudos" className="h-24 mb-2" />
+            </div>
             <p className="mt-2 text-sm text-gray-600">
               Estudar deve ser Leve • Aulas com Caio A
             </p>

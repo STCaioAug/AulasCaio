@@ -69,12 +69,9 @@ export function StudentSidebar() {
   return (
     <aside className="w-64 border-r h-screen sticky top-0 flex flex-col bg-white">
       <div className="p-4">
-        <div className="flex items-center gap-2 mb-8">
-          <GraduationCap className="h-8 w-8 text-primary-600" />
-          <div>
-            <h1 className="font-bold text-lg font-heading">Eleve Estudos</h1>
-            <p className="text-xs text-gray-500">Portal do Aluno</p>
-          </div>
+        <div className="flex flex-col items-center mb-8">
+          <img src="/images/logo.png" alt="Eleve Estudos" className="h-16 mb-1" />
+          <p className="text-xs text-gray-500">Portal do Aluno</p>
         </div>
 
         {/* Perfil do usuário */}

@@ -69,7 +69,7 @@ export function MobileNav() {
           >
             <Menu size={20} />
           </button>
-          <h1 className="text-lg font-heading font-semibold text-primary-600">Eleve Estudos</h1>
+          <img src="/images/logo.png" alt="Eleve Estudos" className="h-8" />
         </div>
         <Avatar className="h-8 w-8 bg-primary-600 text-white">
           <AvatarFallback>{user?.nome ? getInitials(user.nome) : 'U'}</AvatarFallback>

@@ -57,7 +57,7 @@ export function Sidebar() {
   return (
     <aside className="hidden md:flex md:w-64 flex-col bg-white shadow-md z-10 h-screen">
       <div className="p-4 border-b flex flex-col items-center">
-        <h1 className="text-xl font-heading font-semibold text-primary-600">Eleve Estudos</h1>
+        <img src="/images/logo.png" alt="Eleve Estudos" className="h-16 mb-1" />
         <p className="text-sm text-gray-500">Aulas com Caio A</p>
       </div>
       
