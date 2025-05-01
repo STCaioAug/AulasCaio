@@ -155,15 +155,14 @@ export default function AulasPage() {
         <Card>
           <CardHeader>
             <CardTitle>Aulas</CardTitle>
+          </CardHeader>
+          <CardContent>
             <Tabs defaultValue="proximas" value={activeTab} onValueChange={setActiveTab}>
               <TabsList>
                 <TabsTrigger value="proximas">Próximas</TabsTrigger>
                 <TabsTrigger value="passadas">Passadas</TabsTrigger>
               </TabsList>
-            </Tabs>
-          </CardHeader>
-          <CardContent>
-            <TabsContent value="proximas" className="mt-0">
+              <TabsContent value="proximas" className="mt-0">
               {isLoading ? (
                 <div className="py-4 text-center">Carregando aulas...</div>
               ) : proximasAulas.length > 0 ? (
@@ -270,6 +269,7 @@ export default function AulasPage() {
                 </div>
               )}
             </TabsContent>
+            </Tabs>
           </CardContent>
         </Card>
       </div>
