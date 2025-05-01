@@ -99,33 +99,33 @@ export function MobileNav() {
           </div>
           <nav className="p-4 space-y-1">
             {navItems.map((item) => (
-              <Link key={item.href} href={item.href}>
-                <a 
-                  className={cn(
-                    "w-full text-left px-3 py-2 rounded font-medium flex items-center mb-1",
-                    location === item.href || location.startsWith(item.href + '/')
-                      ? "bg-primary-600 text-white" 
-                      : "text-gray-600 bg-white hover:bg-gray-100"
-                  )}
-                  onClick={closeMenus}
-                >
-                  <span className="mr-3">{item.icon}</span> {item.label}
-                </a>
+              <Link 
+                key={item.href} 
+                href={item.href}
+                onClick={closeMenus}
+                className={cn(
+                  "w-full text-left px-3 py-2 rounded font-medium flex items-center mb-1",
+                  location === item.href || location.startsWith(item.href + '/')
+                    ? "bg-primary-600 text-white" 
+                    : "text-gray-600 bg-white hover:bg-gray-100"
+                )}
+              >
+                <span className="mr-3">{item.icon}</span> {item.label}
               </Link>
             ))}
             {moreItems.map((item) => (
-              <Link key={item.href} href={item.href}>
-                <a 
-                  className={cn(
-                    "w-full text-left px-3 py-2 rounded font-medium flex items-center mb-1",
-                    location === item.href || location.startsWith(item.href + '/')
-                      ? "bg-primary-600 text-white" 
-                      : "text-gray-600 bg-white hover:bg-gray-100"
-                  )}
-                  onClick={closeMenus}
-                >
-                  <span className="mr-3">{item.icon}</span> {item.label}
-                </a>
+              <Link 
+                key={item.href} 
+                href={item.href}
+                onClick={closeMenus}
+                className={cn(
+                  "w-full text-left px-3 py-2 rounded font-medium flex items-center mb-1",
+                  location === item.href || location.startsWith(item.href + '/')
+                    ? "bg-primary-600 text-white" 
+                    : "text-gray-600 bg-white hover:bg-gray-100"
+                )}
+              >
+                <span className="mr-3">{item.icon}</span> {item.label}
               </Link>
             ))}
           </nav>
@@ -135,18 +135,18 @@ export function MobileNav() {
       {/* Barra de navegação inferior para mobile */}
       <nav className="md:hidden fixed bottom-0 left-0 right-0 bg-white border-t flex justify-around p-2 z-10">
         {navItems.map((item) => (
-          <Link key={item.href} href={item.href}>
-            <a 
-              className={cn(
-                "flex flex-col items-center px-2 py-1",
-                location === item.href || location.startsWith(item.href + '/')
-                  ? "text-primary-600" 
-                  : "text-gray-500"
-              )}
-            >
-              {item.icon}
-              <span className="text-xs mt-1">{item.label}</span>
-            </a>
+          <Link 
+            key={item.href} 
+            href={item.href}
+            className={cn(
+              "flex flex-col items-center px-2 py-1",
+              location === item.href || location.startsWith(item.href + '/')
+                ? "text-primary-600" 
+                : "text-gray-500"
+            )}
+          >
+            {item.icon}
+            <span className="text-xs mt-1">{item.label}</span>
           </Link>
         ))}
         <button 
@@ -170,19 +170,19 @@ export function MobileNav() {
       >
         <div className="p-2 space-y-1">
           {moreItems.map((item) => (
-            <Link key={item.href} href={item.href}>
-              <a 
-                className={cn(
-                  "flex items-center space-x-2 p-2 rounded w-full text-left",
-                  location === item.href || location.startsWith(item.href + '/')
-                    ? "bg-primary-100 text-primary-600" 
-                    : "hover:bg-gray-100 text-gray-600"
-                )}
-                onClick={() => setMoreMenuVisible(false)}
-              >
-                {item.icon}
-                <span>{item.label}</span>
-              </a>
+            <Link 
+              key={item.href} 
+              href={item.href}
+              onClick={() => setMoreMenuVisible(false)}
+              className={cn(
+                "flex items-center space-x-2 p-2 rounded w-full text-left",
+                location === item.href || location.startsWith(item.href + '/')
+                  ? "bg-primary-100 text-primary-600" 
+                  : "hover:bg-gray-100 text-gray-600"
+              )}
+            >
+              {item.icon}
+              <span>{item.label}</span>
             </Link>
           ))}
         </div>
