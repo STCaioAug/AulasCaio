@@ -17,7 +17,7 @@ interface NavItemProps {
 function NavItem({ href, icon, label, active }: NavItemProps) {
   return (
     <Link href={href}>
-      <a
+      <div
         className={`flex items-center gap-2 px-3 py-2 rounded-md ${active
           ? "bg-primary-100 text-primary-700"
           : "text-gray-700 hover:bg-gray-100"}
@@ -25,7 +25,7 @@ function NavItem({ href, icon, label, active }: NavItemProps) {
       >
         {icon}
         <span className="font-medium">{label}</span>
-      </a>
+      </div>
     </Link>
   );
 }

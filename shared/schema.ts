@@ -8,6 +8,11 @@ export const anoEscolarEnum = pgEnum("ano_escolar", [
   "6_ano", "7_ano", "8_ano", "9_ano", "1_em", "2_em", "3_em", "superior"
 ]);
 
+// Enum para escolas
+export const escolaEnum = pgEnum("escola", [
+  "EEP", "CLQ", "Liceu", "Objetivo", "Mackenzie", "Bandeirantes", "Anglo", "Poliedro", "Outra"
+]);
+
 // Enum para status de aulas
 export const statusAulaEnum = pgEnum("status_aula", [
   "agendada", "confirmada", "cancelada", "realizada"
@@ -23,6 +28,7 @@ export const alunos = pgTable("alunos", {
   id: serial("id").primaryKey(),
   nome: text("nome").notNull(),
   anoEscolar: anoEscolarEnum("ano_escolar").notNull(),
+  escola: escolaEnum("escola").default("Outra"),
   telefone: text("telefone"),
   email: text("email"),
   observacoes: text("observacoes"),
