@@ -739,6 +739,81 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
   
+  // Rota para buscar usuário pelo ID do aluno
+  app.get(`${apiPrefix}/users/by-aluno/:alunoId`, async (req, res) => {
+    try {
+      const { alunoId } = req.params;
+      
+      // Buscar o aluno primeiro
+      const aluno = await db.query.alunos.findFirst({
+        where: eq(alunos.id, parseInt(alunoId))
+      });
+      
+      if (!aluno) {
+        return res.status(404).json({ error: "Aluno não encontrado" });
+      }
+      
+      // Buscar o usuário associado ao aluno
+      const usuario = await db.query.users.findFirst({
+        where: eq(users.alunoId, parseInt(alunoId))
+      });
+      
+      // Retornar os dados do aluno e do usuário (se existir)
+      if (usuario) {
+        // Remover senha antes de enviar na resposta
+        const { password, ...usuarioSemSenha } = usuario;
+        
+        return res.json({
+          ...aluno,
+          usuario: usuarioSemSenha
+        });
+      }
+      
+      // Retornar apenas os dados do aluno se não houver usuário associado
+      return res.json(aluno);
+      
+    } catch (error) {
+      console.error("Erro ao buscar usuário por ID de aluno:", error);
+      return res.status(500).json({ error: "Erro interno do servidor" });
+    }
+  });
+  
+  // Rota para redefinir senha de usuário
+  app.put(`${apiPrefix}/users/:id/reset-password`, async (req, res) => {
+    try {
+      const { id } = req.params;
+      const { password } = req.body;
+      
+      if (!password) {
+        return res.status(400).json({ error: "Senha não fornecida" });
+      }
+      
+      // Verificar se o usuário existe
+      const userExists = await db.select()
+        .from(users)
+        .where(eq(users.id, parseInt(id)))
+        .limit(1);
+      
+      if (userExists.length === 0) {
+        return res.status(404).json({ error: "Usuário não encontrado" });
+      }
+      
+      // Gerar hash da nova senha
+      const hashedPassword = await storage.hashPassword(password);
+      
+      // Atualizar senha do usuário
+      await db.update(users)
+        .set({ password: hashedPassword })
+        .where(eq(users.id, parseInt(id)));
+      
+      return res.status(200).json({ success: true, message: "Senha redefinida com sucesso" });
+      
+    } catch (error) {
+      console.error("Erro ao redefinir senha de usuário:", error);
+      return res.status(500).json({ error: "Erro interno do servidor" });
+    }
+  });
+
   app.delete(`${apiPrefix}/usuarios/:id`, async (req, res) => {
     try {
       // Verificar se o usuário atual é administrador
