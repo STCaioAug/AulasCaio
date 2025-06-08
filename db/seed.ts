@@ -67,20 +67,18 @@ async function seed() {
     // Verificar alunos existentes
     const existingAlunos = await db.select().from(alunos);
     if (existingAlunos.length === 0) {
-      // Criar alunos
+      // Criar alunos baseados nos dados reais fornecidos
       await db.insert(alunos).values([
-        { nome: "Maria Almeida", anoEscolar: "8_ano", email: "maria@example.com" },
-        { nome: "João Ferraz", anoEscolar: "6_ano", email: "joao@example.com" },
-        { nome: "Pedro Risola", anoEscolar: "9_ano", email: "pedro@example.com" },
-        { nome: "Lourenço Ducatti", anoEscolar: "1_em", email: "lourenco@example.com" },
-        { nome: "Gabi Selêncio", anoEscolar: "2_em", email: "gabi@example.com" },
-        { nome: "Otávio Silva", anoEscolar: "7_ano", email: "otavio@example.com" },
-        { nome: "Pietro Archilia", anoEscolar: "3_em", email: "pietro@example.com" },
-        { nome: "Carol Santos", anoEscolar: "9_ano", email: "carol@example.com" },
-        { nome: "Guilherme Pedrão", anoEscolar: "1_em", email: "gui@example.com" },
-        { nome: "Antônio Oliveira", anoEscolar: "6_ano", email: "antonio@example.com" },
-        { nome: "Fernanda Lima", anoEscolar: "8_ano", email: "fernanda@example.com" },
-        { nome: "Betina Martins", anoEscolar: "7_ano", email: "betina@example.com" }
+        { nome: "Daniella Risola", anoEscolar: "8_ano", email: "daniella@example.com" },
+        { nome: "Giovanela", anoEscolar: "9_ano", email: "giovanela@example.com" },
+        { nome: "Karin", anoEscolar: "1_em", email: "karin@example.com" },
+        { nome: "Leandro", anoEscolar: "2_em", email: "leandro@example.com" },
+        { nome: "Gisele", anoEscolar: "7_ano", email: "gisele@example.com" },
+        { nome: "Silvia Celêncio", anoEscolar: "3_em", email: "silvia@example.com" },
+        { nome: "Maysa Inada O Ducatti", anoEscolar: "6_ano", email: "maysa@example.com" },
+        { nome: "Marcela Archilia", anoEscolar: "8_ano", email: "marcela@example.com" },
+        { nome: "Elisane", anoEscolar: "9_ano", email: "elisane@example.com" },
+        { nome: "Mariana Ferraz", anoEscolar: "1_em", email: "mariana@example.com" }
       ]);
       console.log("Alunos criados com sucesso!");
     } else {
@@ -126,21 +124,18 @@ async function seed() {
         responsaveisPorNome.set(resp.nome.split(' ')[0], resp.id);
       });
 
-      // Relações conforme documentado
+      // Relações conforme tabela fornecida pelo usuário
       const relacoes = [
-        { aluno: "Maria", responsavel: "Giovanela" },
-        { aluno: "João", responsavel: "Mariana" },
-        { aluno: "Pedro", responsavel: "Daniella" },
-        { aluno: "Lourenço", responsavel: "Maysa" },
-        { aluno: "Gabi", responsavel: "Silvia" },
-        { aluno: "Otávio", responsavel: "Gisele" },
-        { aluno: "Pietro", responsavel: "Marcela" },
-        { aluno: "Carol", responsavel: "Daniella" },
-        { aluno: "Guilherme", responsavel: "Karin" },
-        { aluno: "Guilherme", responsavel: "Leandro" },
-        { aluno: "Antônio", responsavel: "Giovanela" },
-        { aluno: "Fernanda", responsavel: "Giovanela" },
-        { aluno: "Betina", responsavel: "Mariana" }
+        { aluno: "Daniella", responsavel: "Daniella" }, // Pedro, Carol são responsáveis por Daniella
+        { aluno: "Giovanela", responsavel: "Giovanela" }, // Maria, Antônio, Fê são responsáveis por Giovanela
+        { aluno: "Karin", responsavel: "Karin" }, // Gui/Pedrão é responsável por Karin
+        { aluno: "Leandro", responsavel: "Leandro" }, // Gui/Pedrão é responsável por Leandro
+        { aluno: "Gisele", responsavel: "Gisele" }, // Otávio é responsável por Gisele
+        { aluno: "Silvia", responsavel: "Silvia" }, // Gabi Selêncio é responsável por Silvia
+        { aluno: "Maysa", responsavel: "Maysa" }, // Lourenço é responsável por Maysa
+        { aluno: "Marcela", responsavel: "Marcela" }, // Pietro é responsável por Marcela
+        { aluno: "Elisane", responsavel: "Elisane" }, // Filha de Elisane é responsável por Elisane
+        { aluno: "Mariana", responsavel: "Mariana" } // João, Betina são responsáveis por Mariana
       ];
 
       // Inserir relações
