@@ -77,4 +77,4 @@ npm run dev
 ## 👥 Usuário Padrão
 
 - **Username**: STCaio
-- **Password**: Deus2025
+- **Password**: Deus2025# Aulas_Caio_Final
